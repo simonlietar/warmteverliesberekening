@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warmteverliesberekening — KlimaatWatt</title>
+<style>
+:root {
+  --bg: #f5f4f0;
+  --surface: #ffffff;
+  --surface2: #f9f8f5;
+  --border: #e2e0d8;
+  --border2: #ccc9be;
+  --text: #1a1917;
+  --text2: #5a5850;
+  --text3: #9a9890;
+  --accent: #1b6b3a;
+  --accent-light: #e8f4ed;
+  --red: #c0392b;
+  --radius: 10px;
+  --shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+.page { max-width: 1140px; margin: 0 auto; padding: 24px 16px 60px; }
+.header { margin-bottom: 24px; }
+.header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+.header h1 span { color: var(--accent); }
+.header p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.layout { display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start; }
+@media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px; }
+.card-header { display: flex; align-items: center; gap: 8px; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+.card-header h2 { font-size: 12px; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: 0.6px; flex: 1; }
+.card-body { padding: 16px; }
+label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
+input[type=number], input[type=text], select { width: 100%; padding: 7px 10px; border: 1px solid var(--border2); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; transition: border-color 0.15s; }
+input:focus, select:focus { outline: none; border-color: var(--accent); }
+input[readonly] { background: var(--surface2); color: var(--text2); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.hint { font-size: 11px; color: var(--text3); margin-top: 3px; font-style: italic; }
+.volume-block { border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); margin-bottom: 14px; }
+.volume-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--surface2); border-bottom: 1.5px solid var(--border); user-select: none; }
+.vol-name-input { flex: 1; font-size: 13px; font-weight: 600; border: none; background: transparent; color: var(--text); padding: 2px 4px; font-family: inherit; border-radius: 3px; }
+.vol-name-input:focus { outline: 1px dashed var(--border2); }
+.vol-q { font-size: 12px; font-weight: 700; min-width: 70px; text-align: right; }
+.btn-toggle-vol { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--text3); padding: 0 2px; }
+.btn-del-vol { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 17px; padding: 0 2px; transition: color 0.1s; line-height: 1; }
+.btn-del-vol:hover { color: var(--red); }
+.volume-body { padding: 12px 14px 14px; }
+.schil-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.schil-item { border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+.schil-item-header { display: flex; align-items: center; gap: 7px; padding: 8px 11px; background: var(--surface2); border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+.schil-label { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
+.schil-u { font-size: 11px; color: var(--text3); background: var(--bg); border-radius: 4px; padding: 1px 6px; }
+.schil-q { font-size: 11px; color: var(--accent); font-weight: 700; min-width: 60px; text-align: right; }
+.btn-del { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 15px; padding: 0 2px; transition: color 0.1s; }
+.btn-del:hover { color: var(--red); }
+.schil-item-body { padding: 10px 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.schil-item-body.hidden { display: none; }
+.schil-type-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px; margin-right: 5px; }
+.badge-gevel       { background: #e8f0fa; color: #1a4f8a; }
+.badge-gemene      { background: #f0e8fa; color: #5a1ab5; }
+.badge-dak         { background: #fef5e8; color: #b35c00; }
+.badge-vloer       { background: #e8f4ed; color: #1b6b3a; }
+.badge-schrijnwerk { background: #fdecea; color: #c0392b; }
+.btn-add-schil { display: flex; align-items: center; gap: 5px; justify-content: center; padding: 6px 12px; border-radius: 5px; border: 1.5px dashed var(--border2); background: none; color: var(--text2); font-size: 12px; font-weight: 500; cursor: pointer; width: 100%; transition: all 0.15s; }
+.btn-add-schil:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.btn-add-vol { display: flex; align-items: center; gap: 6px; justify-content: center; padding: 10px 16px; border-radius: 8px; border: 2px dashed var(--border2); background: none; color: var(--text2); font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.15s; }
+.btn-add-vol:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.vol-subtotal { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 7px 10px; border-radius: 6px; border: 1px solid #b8dfc7; }
+.vol-subtotal-label { font-size: 12px; font-weight: 600; flex: 1; }
+.vol-subtotal-val { font-size: 14px; font-weight: 700; }
+.result-main { background: var(--accent); border-radius: 8px; padding: 14px; color: white; text-align: center; margin-bottom: 14px; }
+.result-main .val { font-size: 36px; font-weight: 700; line-height: 1; }
+.result-main .unit { font-size: 13px; opacity: 0.8; margin-top: 3px; }
+.result-main .sub { font-size: 12px; opacity: 0.65; margin-top: 2px; }
+.result-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.result-row-label { flex: 1; font-size: 12px; color: var(--text2); }
+.result-row-bar { flex: 2; height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.result-row-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.result-row-val { font-size: 12px; font-weight: 600; color: var(--text); min-width: 58px; text-align: right; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.stat-cell { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 9px 12px; }
+.stat-cell .stat-label { font-size: 11px; color: var(--text3); margin-bottom: 1px; }
+.stat-cell .stat-val { font-size: 15px; font-weight: 600; color: var(--text); }
+.stat-cell .stat-unit { font-size: 11px; color: var(--text2); }
+.vol-results-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.vol-result-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); }
+.vol-result-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
+.vol-result-bar-wrap { flex: 2; height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.vol-result-bar { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.vol-result-val { font-size: 12px; font-weight: 700; min-width: 55px; text-align: right; }
+.detail-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+.detail-table th { text-align: left; color: var(--text3); font-weight: 500; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+.detail-table td { padding: 4px 6px; border-bottom: 1px solid var(--border); }
+.detail-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.detail-table .hl { font-weight: 600; color: var(--accent); }
+.detail-table .vol-sep td { font-size: 11px; font-weight: 700; padding: 6px 6px 4px; background: var(--surface2); }
+.compare-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.compare-name { font-size: 12px; color: var(--text2); width: 145px; flex-shrink: 0; }
+.compare-bar-wrap { flex: 1; height: 20px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.compare-bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 6px; transition: width 0.4s; }
+.compare-bar-fill span { font-size: 11px; font-weight: 600; color: white; white-space: nowrap; }
+
+/* PDF download button */
+.btn-pdf {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 12px 20px; margin-top: 24px;
+  background: var(--accent); color: white; border: none; border-radius: 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: opacity 0.15s;
+}
+.btn-pdf:hover { opacity: 0.88; }
+
+/* KlimaatWatt brand header */
+.kw-header {
+  display: flex; align-items: flex-start;
+  padding: 20px 0 16px; margin-bottom: 20px;
+  border-bottom: 2px solid #111;
+}
+.kw-header-text { flex: 1; }
+.kw-header-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.kw-brandname { font-size: 28px; font-weight: 900; color: #111; letter-spacing: -0.5px; text-transform: uppercase; line-height: 1; }
+.kw-docname { font-size: 22px; font-weight: 900; color: #111; letter-spacing: -0.5px; text-transform: uppercase; line-height: 1; }
+.kw-disclaimer { font-size: 11px; color: var(--text3); margin-top: 6px; line-height: 1.5; max-width: 820px; }
+.kw-disclaimer strong { color: var(--text2); }
+
+/* Owner card */
+.owner-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.owner-card-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--accent);
+}
+.owner-card-header h2 { font-size: 12px; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 0.6px; flex: 1; }
+.owner-card-header span { font-size: 15px; }
+.owner-body { padding: 16px; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: white !important; font-size: 11px; }
+  .page { padding: 0; max-width: 100%; }
+  .btn-pdf, .btn-add-vol, .btn-add-schil, .btn-del, .btn-del-vol, .btn-toggle-vol, .io-bar { display: none !important; }
+  .schil-item-body { display: grid !important; }
+  .vol-name-input { pointer-events: none; }
+  .card, .volume-block, .owner-card { box-shadow: none !important; }
+  .card { break-inside: avoid; }
+  .card[style*="break-inside:auto"] { break-inside: auto !important; }
+  .detail-table tbody tr { break-inside: avoid; }
+  .layout { grid-template-columns: 1fr 320px; gap: 14px; }
+  .schil-card { display: none !important; }
+  .kw-header { padding: 10px 0 12px; margin-bottom: 14px; }
+  .kw-brandname { font-size: 22px; }
+  .kw-docname { font-size: 18px; }
+  .kw-logo-svg { width: 44px; height: 34px; }
+  .pdf-meta-bar { display: flex !important; }
+  .pdf-owner-summary { display: flex !important; }
+  .owner-card { display: none !important; }
+  input, select { border: none !important; background: transparent !important; padding: 0 !important; font-size: 11px; }
+  .hint { display: none; }
+}
+
+/* IO bar */
+.io-bar {
+  display: flex; gap: 10px; margin-bottom: 16px;
+}
+.btn-io {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; border: 1.5px solid var(--border2);
+  background: var(--surface); color: var(--text2); transition: all 0.15s;
+}
+.btn-io:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.btn-io.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-io.primary:hover { opacity: 0.88; }
+</style>
+</head>
+<body>
+<div class="page">
+<!-- KlimaatWatt header -->
+  <div class="kw-header">
+    <div class="kw-header-text">
+      <div class="kw-header-title">
+        <span class="kw-brandname">KLIMAATWATT?</span>
+        <span class="kw-docname">WARMTEVERLIESBEREKENING</span>
+      </div>
+      <div class="kw-disclaimer">
+        <strong>Disclaimer:</strong> Dit document is louter ter informatie en vervangt geen volwaardige warmteverliesberekening conform NBN EN 12831.
+        KlimaatWatt is niet aansprakelijk voor fouten, onvolledigheden of beslissingen genomen op basis van deze berekening.
+      </div>
+      <div class="pdf-meta-bar" id="pdf-meta-bar" style="display:none; margin-top:6px; font-size:10px; color:#5a5850; gap:16px; flex-wrap:wrap;">
+        <span id="pdf-datum"></span>
+        <span id="pdf-eigenaar-line"></span>
+        <span id="pdf-ref-line"></span>
+      </div>
+    </div>
+  </div>
+  <div class="pdf-owner-summary" id="pdf-owner-summary" style="display:none; gap:24px; padding:6px 0 10px; border-bottom:1px solid #e2e0d8; margin-bottom:12px; font-size:11px; color:#5a5850; flex-wrap:wrap;"></div>
+
+  <div class="owner-card">
+    <div class="owner-card-header"><span>👤</span><h2>Eigenaar &amp; locatie</h2></div>
+    <div class="owner-body">
+      <div class="form-row">
+        <div><label>Naam eigenaar / opdrachtgever</label><input type="text" id="eigenaar_naam" placeholder="Naam Voornaam"></div>
+        <div><label>Adres</label><input type="text" id="eigenaar_adres" placeholder="Straat en nummer"></div>
+      </div>
+      <div class="form-row">
+        <div><label>Postcode &amp; gemeente</label><input type="text" id="eigenaar_gemeente" placeholder="9000 Gent"></div>
+        <div><label>Referentie / dossiernummer</label><input type="text" id="eigenaar_ref" placeholder="optioneel"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="card">
+        <div class="card-header"><span>⚙️</span><h2>Algemene parameters</h2></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div><label>Binnentemperatuur (°C)</label><input type="number" id="T_binnen" value="21" step="0.5" min="15" max="28"></div>
+            <div><label>Buitentemperatuur ontwerp (°C)</label><input type="number" id="T_buiten" value="-8" step="1" min="-20" max="10"></div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label>Temp. aangrenzende ruimte (°C)</label>
+              <input type="number" id="T_buren" value="15" step="1" min="-5" max="25">
+              <div class="hint">Voor gemene muren / onverwarmde zones</div>
+            </div>
+            <div><label>ΔT ontwerp (K) <span style="color:var(--accent);font-size:10px">auto</span></label><input type="number" id="dT_calc" readonly></div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label>Infiltratie</label>
+              <select id="infil_type">
+                <option value="0.1">Nieuwbouw (luchtdicht – EPB) — 0.10 h⁻¹</option>
+                <option value="0.2">Grondige renovatie — 0.20 h⁻¹</option>
+                <option value="0.4" selected>Niet gerenoveerd (oud schrijnwerk) — 0.40 h⁻¹</option>
+                <option value="0.8">Slecht onderhouden, grote kieren — 0.80 h⁻¹</option>
+              </select>
+            </div>
+            <div>
+              <label>Ventilatiesysteem</label>
+              <select id="vent_type">
+                <option value="0.4">Geen ventilatie (oude woning) — 0.40 h⁻¹</option>
+                <option value="0.35">Systeem C (mech. afvoer) — 0.35 h⁻¹</option>
+                <option value="0.25">Systeem C+ (vraaggestuurd) — 0.25 h⁻¹</option>
+                <option value="0.078" selected>Systeem D (balansventilatie WTW) — 0.078 h⁻¹</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label>Verwarmingssysteem</label>
+              <select id="verw_systeem">
+                <option value="0.78">Gasketel (conventioneel) — 78%</option>
+                <option value="0.92" selected>Gascondensatieketel — 92%</option>
+                <option value="0.75">Mazoutketel — 75%</option>
+                <option value="scop">Warmtepomp (SCOP instelbaar)</option>
+                <option value="gaskachel">Gaskachel (schoorsteen/muuruitlaat)</option>
+                <option value="1.0_elek">Accumulatiekachel (elektriciteit) — 100%</option>
+              </select>
+            </div>
+            <div id="scop-wrap" style="display:none"><label>SCOP (voor rendement geselecteerd systeem)</label><input type="number" id="scop_val_sel" value="3.5" step="0.1" min="1.5" max="7"></div>
+            <div id="klimaat-wrap"><label>Klimaatzone</label>
+              <select id="klimaatzone">
+                <option value="2150">Kustvlakte — 2150 °Cd</option>
+                <option value="2300">Gent / Brugge / Kortrijk — 2300 °Cd</option>
+                <option value="2350" selected>Brussel / Antwerpen — 2350 °Cd</option>
+                <option value="2450">Leuven / Hasselt — 2450 °Cd</option>
+                <option value="3100">Ardennen — 3100 °Cd</option>
+                <option value="3400">Hoog-Ardennen — 3400 °Cd</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div><label>Energieprijs gas (€/kWh) <span style="color:var(--accent);font-size:10px">all-in</span></label><input type="number" id="prijs_gas" value="0.103" step="0.001" min="0"><div class="hint">Variabel mei '26: ~€0,103 · Vast contract: ~€0,125–0,135</div></div>
+            <div><label>Energieprijs elektriciteit (€/kWh) <span style="color:var(--accent);font-size:10px">all-in</span></label><input type="number" id="prijs_elek" value="0.30" step="0.005" min="0"><div class="hint">Variabel mei '26: ~€0,23 · Vast contract: ~€0,30–0,37</div></div>
+          </div>
+          <div class="form-row">
+            <div><label>Energieprijs mazout (€/kWh) <span style="color:var(--accent);font-size:10px">all-in</span></label><input type="number" id="prijs_mazout" value="0.133" step="0.001" min="0"><div class="hint">1 L mazout ≈ 9,97 kWh · prijs mei 2026: ~€1,33/L</div></div>
+            <div><label>SCOP warmtepomp <span style="color:var(--accent);font-size:10px">voor vergelijking</span></label><input type="number" id="scop_val" value="3.5" step="0.1" min="1.5" max="7"></div>
+          </div>
+        </div>
+      </div>
+      <div class="io-bar">
+        <button class="btn-io primary" onclick="exportExcel()">⬇ Opslaan als Excel</button>
+        <button class="btn-io" onclick="document.getElementById('import-input').click()">⬆ Laden vanuit Excel</button>
+        <input type="file" id="import-input" accept=".xlsx" style="display:none" onchange="importExcel(this)">
+      </div>
+      <div class="card schil-card">
+        <div class="card-header"><span>🧱</span><h2>Schilsamenstelling — volumes</h2></div>
+        <div class="card-body" style="padding-bottom:14px">
+          <div id="volumes-list"></div>
+          <button class="btn-add-vol" id="btn-add-vol">＋ Volume toevoegen</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span>⚖️</span><h2>Systemen vergelijking</h2></div>
+        <div class="card-body" id="compare-body"></div>
+      </div>
+    </div><!-- einde linkerkolom -->
+    <div><!-- rechterkolom: resultaten + transmissietabel -->
+      <div class="card">
+        <div class="card-header"><span>🔴</span><h2>Totaal warmteverlies</h2></div>
+        <div class="card-body">
+          <div class="result-main">
+            <div class="val" id="res-total-w">—</div>
+            <div class="unit">W (ontwerpcapaciteit)</div>
+            <div class="sub" id="res-total-kw">— kW</div>
+          </div>
+          <div id="vol-results-list" class="vol-results-list" style="display:none"></div>
+          <div id="breakdown" style="margin-bottom:14px"></div>
+          <div style="border-top:1px solid var(--border);padding-top:12px">
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Jaarlijks verbruik</div>
+            <div class="stat-grid">
+              <div class="stat-cell"><div class="stat-label">Warmtebehoefte</div><div><span class="stat-val" id="res-kwh-warmte">—</span> <span class="stat-unit">kWh/jaar</span></div></div>
+              <div class="stat-cell"><div class="stat-label">Energieverbruik systeem</div><div><span class="stat-val" id="res-kwh-systeem">—</span> <span class="stat-unit">kWh/jaar</span></div></div>
+              <div class="stat-cell"><div class="stat-label">Verwarmingskost</div><div><span class="stat-val" id="res-kost">—</span> <span class="stat-unit">€/jaar</span></div></div>
+              <div class="stat-cell"><div class="stat-label">CO₂-uitstoot</div><div><span class="stat-val" id="res-co2">—</span> <span class="stat-unit">kg/jaar</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="break-inside:auto">
+        <div class="card-header"><span>📊</span><h2>Transmissieverlies per schil</h2></div>
+        <div class="card-body" style="padding:8px 14px">
+          <table class="detail-table">
+            <thead><tr><th>Onderdeel</th><th class="num">Opp (m²)</th><th class="num">U</th><th class="num">ΔT</th><th class="num">Q (W)</th></tr></thead>
+            <tbody id="detail-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- einde rechterkolom -->
+  </div><!-- end layout -->
+
+  <button class="btn-pdf" onclick="exportPDF()">
+    ⬇ Rapport downloaden als PDF
+  </button>
+
+</div><!-- end page -->
+<script>
+const ISOLATIE = {'PUR / Polyurethaan':0.028,'PIR / Polyisocyanuraat':0.026,'EPS / Geëxpandeerd polystyreen':0.045,'XPS / Geëxtrudeerd polystyreen':0.038,'Glaswol / Rotswol':0.038,'Papiervlokken / Houtwol':0.040,'Inblaaswol (gesiliconiseerd)':0.034,'Geen isolatie':null};
+const SCHRIJNWERK_U = {'Enkel glas - oud schrijnwerk':5.2,'Oud dubbel glas (voor 2000)':3.0,'Dubbel glas 2000-2010':2.5,'Nieuw dubbel glas HR+':1.6,'Triple glas - modern schrijnwerk':0.9};
+const R_STRUCT = {gevel:0.65,gemene:0.60,dak:0.31,vloer:0.33,schrijnwerk:null};
+const VLOER_R  = {'Vloer op betonplaat (volle grond)':0.33,'Vloer boven kelder (onverwarmd)':0.48,'Vloer op kruipruimte / zand':0.48};
+const CO2 = {gas:0.202,mazout:0.267,elek:0.233};
+const VCOLS = ['#1b6b3a','#1a4f8a','#b35c00','#7b2d8b','#c0392b','#0e6b6b','#8a5a00','#2d6b8a'];
+
+let volumes = [], nextVolId = 1, nextSchilId = 1;
+
+function newVol() { return {id:nextVolId++, naam:'Volume '+(nextVolId-1), intern_volume:'', open:true, schillen:[newSchil()]}; }
+function newSchil() { return {id:nextSchilId++, type:'gevel', naam:'', opp:'', isolatie:'Geen isolatie', dikte_cm:'', vloertype:'Vloer op betonplaat (volle grond)', glastype:'Oud dubbel glas (voor 2000)', open:true}; }
+
+function calcU(s) {
+  if (s.type==='schrijnwerk') return SCHRIJNWERK_U[s.glastype]||3.0;
+  const lam = ISOLATIE[s.isolatie];
+  const Rs = R_STRUCT[s.type]||0.65;
+  const Ri = (lam && s.dikte_cm>0) ? (parseFloat(s.dikte_cm)/100)/lam : 0;
+  return 1/(Rs+Ri);
+}
+function calcDT(s,Tb,Tu,Tbr) {
+  const dT=Tb-Tu;
+  if (s.type==='gemene') return Tb-Tbr;
+  if (s.type==='vloer') return dT * ((s.vloertype||'').match(/kelder|kruip/) ? 0.67 : 0.45);
+  return dT;
+}
+
+function calcAll() {
+  const Tb=parseFloat(gv('T_binnen'))||21, Tu=parseFloat(gv('T_buiten'))||(-8), Tbr=parseFloat(gv('T_buren'))||15;
+  const ni=parseFloat(gv('infil_type'))||0.4, nv=parseFloat(gv('vent_type'))||0.078;
+  const dT=Tb-Tu;
+  let Q_trans_tot=0;
+  const volCalc = volumes.map(vol => {
+    const V=parseFloat(vol.intern_volume)||0;
+    let Q_trans=0;
+    const sr = (vol.schillen||[]).map(s => {
+      const opp=parseFloat(s.opp)||0;
+      if(!opp) return {...s,U:0,dT_s:0,Q:0};
+      const U=calcU(s), dT_s=calcDT(s,Tb,Tu,Tbr), Q=U*opp*dT_s;
+      Q_trans+=Q; return {...s,U,dT_s,Q};
+    });
+    Q_trans_tot+=Q_trans;
+    const Qi=V>0?ni*1005*1.3*V*dT/3600:0, Qv=V>0?nv*1005*1.3*V*dT/3600:0;
+    return {vol,sr,Q_trans,Qi,Qv,Q_vol:Q_trans+Qi+Qv};
+  });
+  const totV=volumes.reduce((s,v)=>s+(parseFloat(v.intern_volume)||0),0);
+  const Qi_tot=ni*1005*1.3*totV*dT/3600, Qv_tot=nv*1005*1.3*totV*dT/3600;
+  return {Q_trans_tot,Qi_tot,Qv_tot,Q_tot:Q_trans_tot+Qi_tot+Qv_tot,volCalc,dT,totV};
+}
+
+function gv(id){const e=document.getElementById(id);return e?e.value:'';}
+function fmt(n,d=0){return isNaN(n)||!isFinite(n)?'—':n.toLocaleString('nl-BE',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function tl(t){return {gevel:'Gevel',gemene:'Gemene muur',dak:'Dak',vloer:'Vloer',schrijnwerk:'Schrijnwerk'}[t]||t;}
+function bc(t){return {gevel:'badge-gevel',gemene:'badge-gemene',dak:'badge-dak',vloer:'badge-vloer',schrijnwerk:'badge-schrijnwerk'}[t]||'badge-gevel';}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function renderAll() {
+  const list = document.getElementById('volumes-list');
+  list.innerHTML = '';
+  volumes.forEach((vol,vi) => {
+    const col = VCOLS[vi%VCOLS.length];
+    const Tb=parseFloat(gv('T_binnen'))||21, Tu=parseFloat(gv('T_buiten'))||(-8), Tbr=parseFloat(gv('T_buren'))||15;
+    const Q_vol = (vol.schillen||[]).reduce((s,x)=>{const o=parseFloat(x.opp)||0;return o>0?s+calcU(x)*o*calcDT(x,Tb,Tu,Tbr):s;},0);
+    const open = vol.open !== false;
+
+    const schilsHTML = (vol.schillen||[]).map(s => renderSchil(s,vol.id,col)).join('');
+
+    const div = document.createElement('div');
+    div.className = 'volume-block';
+    div.style.cssText = `border-color:${col}44`;
+    div.innerHTML = `
+      <div class="volume-header" style="background:${col}0d;border-bottom-color:${col}33">
+        <span style="width:9px;height:9px;border-radius:50%;background:${col};flex-shrink:0;display:inline-block"></span>
+        <input class="vol-name-input" type="text" value="${esc(vol.naam)}"
+          onclick="event.stopPropagation()"
+          onchange="volumes.find(v=>v.id===${vol.id}).naam=this.value;renderAll();updateResults()">
+        <span class="vol-q" style="color:${col}">${fmt(Q_vol)} W</span>
+        <button class="btn-del-vol" onclick="deleteVol(${vol.id})" title="Volume verwijderen">×</button>
+        <button class="btn-toggle-vol" style="color:${col}" onclick="toggleVol(${vol.id})">${open?'▾':'▸'}</button>
+      </div>
+      <div id="vb-${vol.id}" style="${open?'':'display:none'}">
+        <div class="volume-body">
+          <div class="form-row" style="margin-bottom:12px">
+            <div>
+              <label>Intern volume (m³)</label>
+              <input type="number" value="${esc(vol.intern_volume||'')}" step="1" min="0" placeholder="bijv. 254"
+                oninput="volumes.find(v=>v.id===${vol.id}).intern_volume=this.value;updateResults()"
+                onchange="volumes.find(v=>v.id===${vol.id}).intern_volume=this.value;updateResults()">
+              <div class="hint">Voor infiltratie- en ventilatieverlies</div>
+            </div>
+          </div>
+          <div class="schil-list" id="sl-${vol.id}">${schilsHTML}</div>
+          <button class="btn-add-schil" onclick="addSchil(${vol.id})">+ Schilonderdeel toevoegen</button>
+          <div class="vol-subtotal" style="background:${col}0d;border-color:${col}44">
+            <span class="vol-subtotal-label" style="color:${col}">${esc(vol.naam)}</span>
+            <span class="vol-subtotal-val" style="color:${col}">${fmt(Q_vol)} W</span>
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function renderSchil(s, volId, volCol) {
+  const Tb=parseFloat(gv('T_binnen'))||21,Tu=parseFloat(gv('T_buiten'))||(-8),Tbr=parseFloat(gv('T_buren'))||15;
+  const opp=parseFloat(s.opp)||0;
+  const U=opp>0?calcU(s):0, dT_s=opp>0?calcDT(s,Tb,Tu,Tbr):0, Q=opp>0?U*opp*dT_s:0;
+  const isSchr=s.type==='schrijnwerk', isVl=s.type==='vloer', open=s.open!==false;
+
+  let body = `
+    <div><label>Type</label>
+      <select onchange="updateSchil(${volId},${s.id},'type',this.value)">
+        <option value="gevel" ${s.type==='gevel'?'selected':''}>Gevel</option>
+        <option value="gemene" ${s.type==='gemene'?'selected':''}>Gemene muur</option>
+        <option value="dak" ${s.type==='dak'?'selected':''}>Dak</option>
+        <option value="vloer" ${s.type==='vloer'?'selected':''}>Vloer</option>
+        <option value="schrijnwerk" ${s.type==='schrijnwerk'?'selected':''}>Schrijnwerk / beglazing</option>
+      </select>
+    </div>
+    <div><label>Naam</label>
+      <input type="text" value="${esc(s.naam||'')}" placeholder="bijv. Gevel noord"
+        onchange="updateSchil(${volId},${s.id},'naam',this.value)">
+    </div>
+    <div><label>Oppervlakte (m²)</label>
+      <input type="number" value="${s.opp||''}" step="0.01" min="0" placeholder="0.00"
+        oninput="updateSchil(${volId},${s.id},'opp',this.value)"
+        onchange="updateSchil(${volId},${s.id},'opp',this.value)">
+    </div>`;
+
+  if (isSchr) {
+    body += `<div><label>Type beglazing</label>
+      <select onchange="updateSchil(${volId},${s.id},'glastype',this.value)">
+        ${Object.keys(SCHRIJNWERK_U).map(k=>`<option value="${k}" ${s.glastype===k?'selected':''}>${k} — U=${SCHRIJNWERK_U[k]}</option>`).join('')}
+      </select></div>`;
+  } else {
+    body += `
+    <div><label>Isolatiemateriaal</label>
+      <select onchange="updateSchil(${volId},${s.id},'isolatie',this.value)">
+        ${Object.keys(ISOLATIE).map(k=>`<option value="${k}" ${s.isolatie===k?'selected':''}>${k}${ISOLATIE[k]?` — λ=${ISOLATIE[k]}`:''}</option>`).join('')}
+      </select></div>
+    <div><label>Dikte isolatie (cm)</label>
+      <input type="number" value="${s.dikte_cm||''}" step="1" min="0" max="60" placeholder="0"
+        ${s.isolatie==='Geen isolatie'?'disabled style="opacity:0.5"':''}
+        oninput="updateSchil(${volId},${s.id},'dikte_cm',this.value)"
+        onchange="updateSchil(${volId},${s.id},'dikte_cm',this.value)">
+    </div>`;
+    if (isVl) body += `<div><label>Vloertype</label>
+      <select onchange="updateSchil(${volId},${s.id},'vloertype',this.value)">
+        ${Object.keys(VLOER_R).map(k=>`<option value="${k}" ${s.vloertype===k?'selected':''}>${k}</option>`).join('')}
+      </select></div>`;
+  }
+
+  return `<div class="schil-item" id="si-${s.id}">
+    <div class="schil-item-header" onclick="toggleSchil(${volId},${s.id})">
+      <span class="schil-label"><span class="schil-type-badge ${bc(s.type)}">${tl(s.type)}</span>${esc(s.naam||'Nieuw onderdeel')}</span>
+      <span class="schil-u">${opp>0?`U=${U.toFixed(3)}`:''}</span>
+      <span class="schil-q">${opp>0?fmt(Q)+' W':'—'}</span>
+      <button class="btn-del" onclick="event.stopPropagation();deleteSchil(${volId},${s.id})">×</button>
+      <span style="font-size:11px;color:var(--text3)">${open?'▾':'▸'}</span>
+    </div>
+    <div class="schil-item-body ${open?'':'hidden'}">${body}</div>
+  </div>`;
+}
+
+function toggleVol(id) {
+  const v=volumes.find(x=>x.id===id); if(v){v.open=!v.open;renderAll();}
+}
+function deleteVol(id) {
+  if(volumes.length<=1){alert('Minimum één volume vereist.');return;}
+  volumes=volumes.filter(v=>v.id!==id); renderAll(); updateResults();
+}
+function addSchil(volId) {
+  const v=volumes.find(x=>x.id===volId); if(v){v.schillen.push(newSchil());renderAll();updateResults();}
+}
+function toggleSchil(volId,schilId) {
+  const v=volumes.find(x=>x.id===volId); if(!v)return;
+  const s=v.schillen.find(x=>x.id===schilId); if(s){s.open=!s.open;renderAll();}
+}
+function deleteSchil(volId,schilId) {
+  const v=volumes.find(x=>x.id===volId); if(!v)return;
+  if(v.schillen.length<=1){alert('Minimum één schilonderdeel per volume.');return;}
+  v.schillen=v.schillen.filter(s=>s.id!==schilId); renderAll(); updateResults();
+}
+function updateSchil(volId,schilId,field,val) {
+  const v=volumes.find(x=>x.id===volId); if(!v)return;
+  const s=v.schillen.find(x=>x.id===schilId); if(!s)return;
+  s[field]=val;
+  if(field==='type'){
+    if(val==='schrijnwerk'){s.glastype=s.glastype||'Oud dubbel glas (voor 2000)';}
+    else{s.isolatie=s.isolatie||'Geen isolatie';s.dikte_cm=s.dikte_cm||'';}
+    if(val==='vloer')s.vloertype=s.vloertype||'Vloer op betonplaat (volle grond)';
+    renderAll(); // only re-render on type change (changes form layout)
+  } else if(field==='isolatie') {
+    if(val==='Geen isolatie') s.dikte_cm='';
+    renderAll(); // re-render to toggle disabled state on dikte input
+  } else {
+    // For numeric/text fields: just update results + header badge, no full re-render
+    updateResults();
+    // Update the header badge in-place
+    const item = document.getElementById('si-'+schilId);
+    if(item) {
+      const Tb=parseFloat(gv('T_binnen'))||21,Tu=parseFloat(gv('T_buiten'))||(-8),Tbr=parseFloat(gv('T_buren'))||15;
+      const opp=parseFloat(s.opp)||0;
+      const U=opp>0?calcU(s):0, dT_s=opp>0?calcDT(s,Tb,Tu,Tbr):0, Q=opp>0?U*opp*dT_s:0;
+      const uEl=item.querySelector('.schil-u'); if(uEl) uEl.textContent=opp>0?`U=${U.toFixed(3)}`:'';
+      const qEl=item.querySelector('.schil-q'); if(qEl) qEl.textContent=opp>0?fmt(Q)+' W':'—';
+      const lEl=item.querySelector('.schil-label'); if(lEl&&field==='naam') lEl.innerHTML=`<span class="schil-type-badge ${bc(s.type)}">${tl(s.type)}</span>${esc(val||'Nieuw onderdeel')}`;
+    }
+    // Update volume subtotal in-place
+    const volDiv = document.querySelector(`#vb-${volId} .vol-subtotal-val`);
+    if(volDiv) {
+      const Tb=parseFloat(gv('T_binnen'))||21,Tu=parseFloat(gv('T_buiten'))||(-8),Tbr=parseFloat(gv('T_buren'))||15;
+      const vol=volumes.find(x=>x.id===volId);
+      const Q_vol=(vol.schillen||[]).reduce((sum,x)=>{const o=parseFloat(x.opp)||0;return o>0?sum+calcU(x)*o*calcDT(x,Tb,Tu,Tbr):sum;},0);
+      volDiv.textContent=fmt(Q_vol)+' W';
+    }
+  }
+}
+
+document.getElementById('btn-add-vol').addEventListener('click',()=>{volumes.push(newVol());renderAll();updateResults();});
+document.getElementById('verw_systeem').addEventListener('change',function(){
+  document.getElementById('scop-wrap').style.display=this.value==='scop'?'':'none';
+  updateResults();
+});
+['T_binnen','T_buiten','T_buren','infil_type','vent_type','verw_systeem','scop_val','klimaatzone','prijs_gas','prijs_elek','prijs_mazout'].forEach(id=>{
+  const el=document.getElementById(id); if(!el)return;
+  el.addEventListener('change',()=>{renderAll();updateResults();});
+  el.addEventListener('input',()=>{if(el.type==='number'){renderAll();updateResults();}});
+});
+
+function getRend(){const s=gv('verw_systeem');if(s==='scop')return parseFloat(gv('scop_val'))||3.5;if(s==='gaskachel')return 0.75;if(s==='1.0_elek')return 1.0;return parseFloat(s)||0.92;}
+function getPrice(){const s=gv('verw_systeem');if(s==='scop'||s==='1.0_elek')return parseFloat(gv('prijs_elek'))||0.30;if(s==='0.75')return parseFloat(gv('prijs_mazout'))||0.133;return parseFloat(gv('prijs_gas'))||0.103;}
+function getCO2f(){const s=gv('verw_systeem');if(s==='scop'||s==='1.0_elek')return CO2.elek;if(s==='0.75')return CO2.mazout;return CO2.gas;}
+
+function updateResults() {
+  const Tb=parseFloat(gv('T_binnen'))||21, Tu=parseFloat(gv('T_buiten'))||(-8);
+  document.getElementById('dT_calc').value=(Tb-Tu).toFixed(1);
+  const {Q_trans_tot,Qi_tot,Qv_tot,Q_tot,volCalc}=calcAll();
+  document.getElementById('res-total-w').textContent=fmt(Q_tot);
+  document.getElementById('res-total-kw').textContent=fmt(Q_tot/1000,2)+' kW';
+
+  const vrl=document.getElementById('vol-results-list');
+  if(volumes.length>1){
+    vrl.style.display='';
+    const maxQ=Math.max(...volCalc.map(vc=>vc.Q_vol),1);
+    vrl.innerHTML=volCalc.map((vc,vi)=>{
+      const col=VCOLS[vi%VCOLS.length];
+      return `<div class="vol-result-row">
+        <span style="width:8px;height:8px;border-radius:50%;background:${col};display:inline-block;flex-shrink:0"></span>
+        <span class="vol-result-name">${esc(vc.vol.naam)}</span>
+        <div class="vol-result-bar-wrap"><div class="vol-result-bar" style="width:${(vc.Q_vol/maxQ*100).toFixed(0)}%;background:${col}"></div></div>
+        <span class="vol-result-val" style="color:${col}">${fmt(vc.Q_vol)} W</span>
+      </div>`;
+    }).join('');
+  } else { vrl.style.display='none'; }
+
+  const qm=Q_tot||1;
+  document.getElementById('breakdown').innerHTML=[
+    {label:'Transmissie',Q:Q_trans_tot,color:'#1b6b3a'},
+    {label:'Infiltratie',Q:Qi_tot,color:'#d4480a'},
+    {label:'Ventilatie',Q:Qv_tot,color:'#1a4f8a'}
+  ].map(it=>`<div class="result-row">
+    <div class="result-row-label">${it.label}</div>
+    <div class="result-row-bar"><div class="result-row-fill" style="width:${(it.Q/qm*100).toFixed(0)}%;background:${it.color}"></div></div>
+    <div class="result-row-val">${fmt(it.Q)} W</div>
+  </div>`).join('');
+
+  const gd=parseFloat(gv('klimaatzone'))||2350, dTo=Tb-Tu||29;
+  const wbh=dTo>0?Q_tot*(gd*24)/(dTo*1000):0, rend=getRend(), verb=wbh/rend;
+  document.getElementById('res-kwh-warmte').textContent=fmt(wbh);
+  document.getElementById('res-kwh-systeem').textContent=fmt(verb);
+  document.getElementById('res-kost').textContent=fmt(verb*getPrice());
+  document.getElementById('res-co2').textContent=fmt(verb*getCO2f());
+
+  let rows='';
+  volCalc.forEach((vc,vi)=>{
+    const col=VCOLS[vi%VCOLS.length];
+    if(volumes.length>1) rows+=`<tr class="vol-sep"><td colspan="5" style="color:${col}">▸ ${esc(vc.vol.naam)}</td></tr>`;
+    vc.sr.forEach(r=>{
+      const o=parseFloat(r.opp)||0;
+      rows+=`<tr><td><span class="schil-type-badge ${bc(r.type)}" style="font-size:9px">${tl(r.type)}</span>${esc(r.naam||'')}</td><td class="num">${fmt(o,2)}</td><td class="num">${o>0?r.U.toFixed(3):'—'}</td><td class="num">${o>0?r.dT_s.toFixed(1):'—'}</td><td class="num hl">${o>0?fmt(r.Q):'—'}</td></tr>`;
+    });
+    rows+=`<tr style="font-weight:600;border-top:1px solid var(--border2)"><td colspan="4" style="font-size:10px;color:var(--text2)">Transmissie ${esc(vc.vol.naam)}</td><td class="num hl">${fmt(vc.Q_trans)} W</td></tr>`;
+  });
+  if(volumes.length>1) rows+=`<tr style="font-weight:700;border-top:2px solid var(--border2)"><td colspan="4" style="color:var(--text2);font-size:10px">Totaal transmissie</td><td class="num hl">${fmt(Q_trans_tot)} W</td></tr>`;
+  document.getElementById('detail-tbody').innerHTML=rows;
+
+  const gp=parseFloat(gv('prijs_gas'))||0.103,ep=parseFloat(gv('prijs_elek'))||0.30,sc=parseFloat(gv('scop_val'))||3.5;
+  const mp=parseFloat(gv('prijs_mazout'))||0.133;
+  const sys=[
+    {naam:'Gasketel (conv.)',         r:0.78, p:gp, c:CO2.gas,    col:'#d4480a'},
+    {naam:'Gascondensatieketel',      r:0.92, p:gp, c:CO2.gas,    col:'#b35c00'},
+    {naam:'Gaskachel (schoorsteen)',  r:0.75, p:gp, c:CO2.gas,    col:'#e8a020'},
+    {naam:'Mazoutketel',              r:0.75, p:mp, c:CO2.mazout, col:'#5a5850'},
+    {naam:'Accumulatiekachel elek.',  r:1.0,  p:ep, c:CO2.elek,   col:'#1a4f8a'},
+    {naam:`WP SCOP ${sc.toFixed(1)}`, r:sc,  p:ep, c:CO2.elek,   col:'#1b6b3a'},
+  ];
+  const costs=sys.map(s=>wbh/s.r*s.p), mc=Math.max(...costs,1);
+  document.getElementById('compare-body').innerHTML=`<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Graaddagen ${gd} °Cd · warmtebehoefte ${fmt(wbh)} kWh/jaar</div>`+
+    sys.map((s,i)=>`<div class="compare-row"><div class="compare-name">${s.naam}</div><div class="compare-bar-wrap"><div class="compare-bar-fill" style="width:${(costs[i]/mc*100).toFixed(0)}%;background:${s.col}"><span>€${fmt(costs[i])}/jr</span></div></div></div>`).join('');
+}
+
+function exportPDF() {
+  const naam    = document.getElementById('eigenaar_naam').value.trim();
+  const adres   = document.getElementById('eigenaar_adres').value.trim();
+  const gem     = document.getElementById('eigenaar_gemeente').value.trim();
+  const ref     = document.getElementById('eigenaar_ref').value.trim();
+  const now     = new Date();
+  const datumStr = now.toLocaleDateString('nl-BE', {day:'2-digit',month:'long',year:'numeric'});
+
+  document.getElementById('pdf-datum').textContent = 'Datum: ' + datumStr;
+  document.getElementById('pdf-eigenaar-line').textContent = [naam, adres, gem].filter(Boolean).join(' · ');
+  document.getElementById('pdf-ref-line').textContent = ref ? 'Ref: ' + ref : '';
+
+  const parts = [naam, [adres,gem].filter(Boolean).join(', '), ref].filter(Boolean);
+  document.getElementById('pdf-owner-summary').innerHTML =
+    parts.map(p=>`<span>${esc(p)}</span>`).join(' &nbsp;·&nbsp; ');
+
+  window.print();
+}
+
+function exportExcel() {
+  if(typeof XLSX === 'undefined') { alert('SheetJS nog niet geladen, probeer opnieuw.'); return; }
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Parameters
+  const params = [
+    ['Parameter','Waarde'],
+    ['Eigenaar naam', document.getElementById('eigenaar_naam').value],
+    ['Adres', document.getElementById('eigenaar_adres').value],
+    ['Gemeente', document.getElementById('eigenaar_gemeente').value],
+    ['Referentie', document.getElementById('eigenaar_ref').value],
+    ['Binnentemperatuur (°C)', gv('T_binnen')],
+    ['Buitentemperatuur ontwerp (°C)', gv('T_buiten')],
+    ['Temp aangrenzende ruimte (°C)', gv('T_buren')],
+    ['Infiltratie (h-1)', gv('infil_type')],
+    ['Ventilatiesysteem (h-1)', gv('vent_type')],
+    ['Verwarmingssysteem', gv('verw_systeem')],
+    ['SCOP warmtepomp', gv('scop_val')],
+    ['Klimaatzone (graaddagen)', gv('klimaatzone')],
+    ['Prijs gas (EUR/kWh)', gv('prijs_gas')],
+    ['Prijs elektriciteit (EUR/kWh)', gv('prijs_elek')],
+    ['Prijs mazout (EUR/kWh)', gv('prijs_mazout')],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(params), 'Parameters');
+
+  // Sheet 2: Schillen
+  const rows = [['Volume ID','Volume naam','Intern volume (m3)','Schil ID','Type','Naam','Oppervlakte (m2)','Isolatie','Dikte (cm)','Glastype','Vloertype']];
+  volumes.forEach(vol => {
+    (vol.schillen||[]).forEach(s => {
+      rows.push([vol.id, vol.naam, vol.intern_volume||'', s.id, s.type, s.naam||'', s.opp||'', s.isolatie||'', s.dikte_cm||'', s.glastype||'', s.vloertype||'']);
+    });
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Schillen');
+
+  XLSX.writeFile(wb, 'warmteverliesberekening.xlsx');
+}
+
+function importExcel(input) {
+  if(!input.files||!input.files[0]) return;
+  if(typeof XLSX === 'undefined') { alert('SheetJS nog niet geladen.'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+
+      // Read parameters
+      const ps = XLSX.utils.sheet_to_json(wb.Sheets['Parameters'], {header:1});
+      const pmap = {};
+      ps.forEach(r => { if(r[0]) pmap[r[0]] = r[1]; });
+      const set = (id, key) => { const el=document.getElementById(id); if(el&&pmap[key]!==undefined) el.value=pmap[key]; };
+      set('eigenaar_naam','Eigenaar naam'); set('eigenaar_adres','Adres');
+      set('eigenaar_gemeente','Gemeente'); set('eigenaar_ref','Referentie');
+      set('T_binnen','Binnentemperatuur (°C)'); set('T_buiten','Buitentemperatuur ontwerp (°C)');
+      set('T_buren','Temp aangrenzende ruimte (°C)'); set('infil_type','Infiltratie (h-1)');
+      set('vent_type','Ventilatiesysteem (h-1)'); set('verw_systeem','Verwarmingssysteem');
+      set('scop_val','SCOP warmtepomp'); set('klimaatzone','Klimaatzone (graaddagen)');
+      set('prijs_gas','Prijs gas (EUR/kWh)'); set('prijs_elek','Prijs elektriciteit (EUR/kWh)');
+      set('prijs_mazout','Prijs mazout (EUR/kWh)');
+
+      // Read schillen
+      const ss = XLSX.utils.sheet_to_json(wb.Sheets['Schillen'], {header:1});
+      if(ss.length > 1) {
+        const volMap = {};
+        ss.slice(1).forEach(r => {
+          const [volId,volNaam,volM3,schilId,type,naam,opp,isolatie,dikte,glastype,vloertype] = r;
+          if(!volId) return;
+          if(!volMap[volId]) volMap[volId] = {id:nextVolId++, naam:String(volNaam||''), intern_volume:String(volM3||''), open:false, schillen:[]};
+          if(schilId) volMap[volId].schillen.push({
+            id:nextSchilId++, type:String(type||'gevel'), naam:String(naam||''),
+            opp:String(opp||''), isolatie:String(isolatie||'Geen isolatie'),
+            dikte_cm:String(dikte||''), glastype:String(glastype||'Oud dubbel glas (voor 2000)'),
+            vloertype:String(vloertype||'Vloer op betonplaat (volle grond)'), open:false
+          });
+        });
+        volumes = Object.values(volMap).filter(v=>v.schillen.length>0);
+        if(!volumes.length) volumes = [newVol()];
+      }
+
+      renderAll(); updateResults();
+      alert('Bestand succesvol geladen.');
+    } catch(err) { alert('Fout bij inlezen: '+err.message); }
+    input.value='';
+  };
+  reader.readAsArrayBuffer(input.files[0]);
+}
+
+volumes=[newVol()];
+renderAll();
+updateResults();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</body>
+</html>
