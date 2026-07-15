@@ -503,10 +503,11 @@ function calcU(s) {
   const t   = s.type;
   const Rsi = R_SI[t]||0.13;
   const Rse = R_SE[t]||0.04;
-  // Constructielaag
+  // Constructielaag — minimum R per type als dikte niet ingevuld
+  const R_min = {gevel:0.48, gemene:0.48, dak:0.23, vloer:0.25};
   const lam_c = CONSTRUCTIE[s.constructie]||0.60;
   const d_c   = parseFloat(s.dikte_constructie_cm)||0;
-  const R_c   = d_c > 0 ? (d_c/100)/lam_c : 0;
+  const R_c   = d_c > 0 ? (d_c/100)/lam_c : (R_min[t]||0.48);
   // Isolatielaag
   const lam_i = ISOLATIE[s.isolatie];
   const d_i   = parseFloat(s.dikte_cm)||0;
@@ -896,12 +897,21 @@ function importExcel(input) {
       set('prijs_gas','Prijs gas (EUR/kWh)'); set('prijs_elek','Prijs elektriciteit (EUR/kWh)');
       set('prijs_mazout','Prijs mazout (EUR/kWh)');
 
-      // Read schillen
+      // Read schillen — detecteer oud (zonder constructie) vs nieuw formaat via header
       const ss = XLSX.utils.sheet_to_json(wb.Sheets['Schillen'], {header:1});
       if(ss.length > 1) {
+        const header = ss[0].map(h=>String(h||'').toLowerCase());
+        const nieuwFormaat = header.includes('constructie');
         const volMap = {};
         ss.slice(1).forEach(r => {
-          const [volId,volNaam,volM3,schilId,type,naam,opp,constructie,dikte_c,isolatie,dikte,glastype,vloertype] = r;
+          let volId,volNaam,volM3,schilId,type,naam,opp,constructie,dikte_c,isolatie,dikte,glastype,vloertype;
+          if(nieuwFormaat) {
+            [volId,volNaam,volM3,schilId,type,naam,opp,constructie,dikte_c,isolatie,dikte,glastype,vloertype] = r;
+          } else {
+            // Oud formaat: Volume ID,Volume naam,Intern volume,Schil ID,Type,Naam,Oppervlakte,Isolatie,Dikte,Glastype,Vloertype
+            [volId,volNaam,volM3,schilId,type,naam,opp,isolatie,dikte,glastype,vloertype] = r;
+            constructie = 'Volle baksteen'; dikte_c = '';
+          }
           if(!volId) return;
           if(!volMap[volId]) volMap[volId] = {id:nextVolId++, naam:String(volNaam||''), intern_volume:String(volM3||''), open:false, schillen:[]};
           if(schilId) volMap[volId].schillen.push({
