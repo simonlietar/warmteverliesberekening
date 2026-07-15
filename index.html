@@ -145,23 +145,47 @@ input[readonly] { background: var(--surface2); color: var(--text2); }
 .owner-card-header span { font-size: 15px; }
 .owner-body { padding: 16px; }
 
+/* ===== TABS ===== */
+.tab-nav { display: flex; gap: 4px; margin-bottom: 20px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+.tab-btn { flex: 1; padding: 9px 16px; border: none; background: none; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.tab-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.10); }
+.tab-btn.cooling.active { background: #1a4f8a; color: white; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Cooling specific */
+.result-main.cooling { background: #1a4f8a; }
+.badge-N  { background:#e8f0fa;color:#1a4f8a; }
+.badge-NO { background:#e8f4ed;color:#1b6b3a; }
+.badge-O  { background:#fef5e8;color:#b35c00; }
+.badge-ZO { background:#fdecea;color:#c0392b; }
+.badge-Z  { background:#fdecea;color:#c0392b; }
+.badge-ZW { background:#f0e8fa;color:#5a1ab5; }
+.badge-W  { background:#fef5e8;color:#b35c00; }
+.badge-NW { background:#e8f0fa;color:#1a4f8a; }
+.badge-H  { background:#fef5e8;color:#b35c00; }
+
 @media print {
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .tab-nav { display: none !important; }
+  .tab-panel { display: block !important; }
+  .tab-panel.print-hide { display: none !important; }
   body { background: white !important; font-size: 11px; }
   .page { padding: 0; max-width: 100%; }
   .btn-pdf, .btn-add-vol, .btn-add-schil, .btn-del, .btn-del-vol, .btn-toggle-vol, .io-bar { display: none !important; }
   .schil-item-body { display: grid !important; }
   .vol-name-input { pointer-events: none; }
   .card, .volume-block, .owner-card { box-shadow: none !important; }
+  /* Kolommen niet doormidden knippen — kolom verhuist naar volgende pagina */
+  .layout { grid-template-columns: 1fr 320px; gap: 14px; align-items: start; }
+  .layout > div { break-inside: avoid-page; }
   .card { break-inside: avoid; }
   .card[style*="break-inside:auto"] { break-inside: auto !important; }
   .detail-table tbody tr { break-inside: avoid; }
-  .layout { grid-template-columns: 1fr 320px; gap: 14px; }
   .schil-card { display: none !important; }
   .kw-header { padding: 10px 0 12px; margin-bottom: 14px; }
   .kw-brandname { font-size: 22px; }
   .kw-docname { font-size: 18px; }
-  .kw-logo-svg { width: 44px; height: 34px; }
   .pdf-meta-bar { display: flex !important; }
   .pdf-owner-summary { display: flex !important; }
   .owner-card { display: none !important; }
@@ -217,9 +241,21 @@ input[readonly] { background: var(--surface2); color: var(--text2); }
         <div><label>Postcode &amp; gemeente</label><input type="text" id="eigenaar_gemeente" placeholder="9000 Gent"></div>
         <div><label>Referentie / dossiernummer</label><input type="text" id="eigenaar_ref" placeholder="optioneel"></div>
       </div>
+      <div class="io-bar" style="margin-top:4px">
+        <button class="btn-io primary" onclick="exportExcel()">⬇ Opslaan als Excel</button>
+        <button class="btn-io" onclick="document.getElementById('import-input').click()">⬆ Laden vanuit Excel</button>
+      </div>
     </div>
   </div>
 
+  <!-- Tab navigatie -->
+  <div class="tab-nav">
+    <button class="tab-btn active" id="tab-warmte-btn" onclick="switchTab('warmte')">🔴 Warmteverliesberekening</button>
+    <button class="tab-btn cooling" id="tab-koel-btn" onclick="switchTab('koel')">❄️ Koellastberekening</button>
+  </div>
+
+  <!-- TAB 1: Warmteverlies -->
+  <div class="tab-panel active" id="tab-warmte">
   <div class="layout">
     <div>
       <div class="card">
@@ -346,11 +382,107 @@ input[readonly] { background: var(--surface2); color: var(--text2); }
     ⬇ Rapport downloaden als PDF
   </button>
 
+  </div><!-- end tab-warmte -->
+
+  <!-- TAB 2: Koellast -->
+  <div class="tab-panel" id="tab-koel">
+    <div class="layout">
+      <!-- LINKS: parameters + oriëntatie per schil -->
+      <div>
+        <div class="card">
+          <div class="card-header"><span>☀️</span><h2>Zomerparameters</h2></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div><label>Binnentemperatuur zomer (°C)</label><input type="number" id="koel_T_binnen" value="26" step="0.5" min="18" max="30"></div>
+              <div><label>Buitentemperatuur ontwerp zomer (°C)</label><input type="number" id="koel_T_buiten" value="32" step="1" min="20" max="42"></div>
+            </div>
+            <div class="form-row">
+              <div><label>Gelijktijdigheidsfactor (%)</label>
+                <input type="number" id="koel_gelijk" value="75" step="5" min="50" max="100">
+                <div class="hint">Niet alle ruimtes tegelijk op maximum — typisch 75%</div>
+              </div>
+              <div><label>Interne warmtelast (W/m² vloer)</label>
+                <input type="number" id="koel_intern" value="8" step="1" min="0" max="50">
+                <div class="hint">Personen + verlichting + apparaten — woning ~8 W/m²</div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div><label>Vloeroppervlakte (m²)</label>
+                <input type="number" id="koel_vloer_opp" value="" step="1" min="0" placeholder="bijv. 120">
+                <div class="hint">Voor interne warmtelast berekening</div>
+              </div>
+              <div><label>Ventilatiedebiet zomer (h⁻¹)</label>
+                <input type="number" id="koel_vent" value="0.4" step="0.05" min="0">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span>🧭</span><h2>Oriëntatie &amp; zonwering per schrijnwerk</h2>
+            <span style="margin-left:auto;font-size:11px;color:var(--text3)">Enkel schrijnwerk</span>
+          </div>
+          <div class="card-body" style="padding:10px 14px">
+            <div id="koel-schil-list"></div>
+            <p id="koel-no-schrijnwerk" style="font-size:12px;color:var(--text3);display:none">Geen schrijnwerk gevonden in de schilsamenstelling.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECHTS: resultaten koellast -->
+      <div>
+        <div class="card">
+          <div class="card-header"><span>❄️</span><h2>Totale koellast</h2></div>
+          <div class="card-body">
+            <div class="result-main cooling">
+              <div class="val" id="koel-total-w">—</div>
+              <div class="unit">W (ontwerpcapaciteit koeling)</div>
+              <div class="sub" id="koel-total-kw">— kW</div>
+            </div>
+            <div id="koel-breakdown" style="margin-bottom:14px"></div>
+            <div style="border-top:1px solid var(--border);padding-top:12px">
+              <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Indicatieve dimensionering</div>
+              <div class="stat-grid">
+                <div class="stat-cell"><div class="stat-label">Koellast / m² vloer</div><div><span class="stat-val" id="koel-w-m2">—</span> <span class="stat-unit">W/m²</span></div></div>
+                <div class="stat-cell"><div class="stat-label">Aanbevolen vermogen</div><div><span class="stat-val" id="koel-kw-advies">—</span> <span class="stat-unit">kW</span></div></div>
+                <div class="stat-cell"><div class="stat-label">Equivalent koelunits</div><div><span class="stat-val" id="koel-btu">—</span> <span class="stat-unit">BTU/h</span></div></div>
+                <div class="stat-cell"><div class="stat-label">Energieverbruik (EER 3)</div><div><span class="stat-val" id="koel-kwh">—</span> <span class="stat-unit">kWh/dag</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="break-inside:auto">
+          <div class="card-header"><span>📊</span><h2>Koellast per component</h2></div>
+          <div class="card-body" style="padding:8px 14px">
+            <table class="detail-table">
+              <thead><tr><th>Component</th><th class="num">Opp/Vol</th><th class="num">Factor</th><th class="num">Q (W)</th></tr></thead>
+              <tbody id="koel-detail-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- end tab-koel -->
+
 </div><!-- end page -->
 <script>
 const ISOLATIE = {'PUR / Polyurethaan':0.028,'PIR / Polyisocyanuraat':0.026,'EPS / Geëxpandeerd polystyreen':0.045,'XPS / Geëxtrudeerd polystyreen':0.038,'Glaswol / Rotswol':0.038,'Papiervlokken / Houtwol':0.040,'Inblaaswol (gesiliconiseerd)':0.034,'Geen isolatie':null};
-const SCHRIJNWERK_U = {'Enkel glas - oud schrijnwerk':5.2,'Oud dubbel glas (voor 2000)':3.0,'Dubbel glas 2000-2010':2.5,'Nieuw dubbel glas HR+':1.6,'Triple glas - modern schrijnwerk':0.9};
-const R_STRUCT = {gevel:0.65,gemene:0.60,dak:0.31,vloer:0.33,schrijnwerk:null};
+const CONSTRUCTIE = {
+  'Volle baksteen':          0.60,
+  'Holle baksteen':          0.27,
+  'Betonblok (zwaar)':       1.70,
+  'Cellenbeton / Ytong':     0.19,
+  'Hout (naaldhout)':        0.13,
+  'Sandwichpaneel (staal)':  0.04,
+  'Gipsblok':                0.35,
+  'Gewapend beton':          2.00,
+};
+// Oppervlakteweerstanden EN ISO 6946 (m²K/W)
+// Rsi/Rse per oriëntatie: verticaal (muur), horizontaal opwaarts (dak), horizontaal neerwaarts (vloer)
+const R_SI = {gevel:0.13, gemene:0.13, dak:0.10, vloer:0.17};
+const R_SE = {gevel:0.04, gemene:0.13, dak:0.04, vloer:0.04}; // gemene muur: beide zijden binnen
+const SCHRIJNWERK_U = {'Enkel glas - oud schrijnwerk':5.2,'Oud dubbel glas (voor 2000)':3.0,'Dubbel glas 2000-2010':2.5,'Nieuw dubbel glas HR+':1.6,'Triple glas - modern schrijnwerk':0.9,'Zonwerend dubbel glas (g≤0,35)':1.5,'Zonwerend triple glas (g≤0,27)':0.8};
 const VLOER_R  = {'Vloer op betonplaat (volle grond)':0.33,'Vloer boven kelder (onverwarmd)':0.48,'Vloer op kruipruimte / zand':0.48};
 const CO2 = {gas:0.202,mazout:0.267,elek:0.233};
 const VCOLS = ['#1b6b3a','#1a4f8a','#b35c00','#7b2d8b','#c0392b','#0e6b6b','#8a5a00','#2d6b8a'];
@@ -358,14 +490,29 @@ const VCOLS = ['#1b6b3a','#1a4f8a','#b35c00','#7b2d8b','#c0392b','#0e6b6b','#8a5
 let volumes = [], nextVolId = 1, nextSchilId = 1;
 
 function newVol() { return {id:nextVolId++, naam:'Volume '+(nextVolId-1), intern_volume:'', open:true, schillen:[newSchil()]}; }
-function newSchil() { return {id:nextSchilId++, type:'gevel', naam:'', opp:'', isolatie:'Geen isolatie', dikte_cm:'', vloertype:'Vloer op betonplaat (volle grond)', glastype:'Oud dubbel glas (voor 2000)', open:true}; }
+function newSchil() { return {
+  id:nextSchilId++, type:'gevel', naam:'', opp:'',
+  constructie:'Volle baksteen', dikte_constructie_cm:'',
+  isolatie:'Geen isolatie', dikte_cm:'',
+  vloertype:'Vloer op betonplaat (volle grond)',
+  glastype:'Oud dubbel glas (voor 2000)', open:true
+}; }
 
 function calcU(s) {
   if (s.type==='schrijnwerk') return SCHRIJNWERK_U[s.glastype]||3.0;
-  const lam = ISOLATIE[s.isolatie];
-  const Rs = R_STRUCT[s.type]||0.65;
-  const Ri = (lam && s.dikte_cm>0) ? (parseFloat(s.dikte_cm)/100)/lam : 0;
-  return 1/(Rs+Ri);
+  const t   = s.type;
+  const Rsi = R_SI[t]||0.13;
+  const Rse = R_SE[t]||0.04;
+  // Constructielaag
+  const lam_c = CONSTRUCTIE[s.constructie]||0.60;
+  const d_c   = parseFloat(s.dikte_constructie_cm)||0;
+  const R_c   = d_c > 0 ? (d_c/100)/lam_c : 0;
+  // Isolatielaag
+  const lam_i = ISOLATIE[s.isolatie];
+  const d_i   = parseFloat(s.dikte_cm)||0;
+  const R_i   = (lam_i && d_i > 0) ? (d_i/100)/lam_i : 0;
+  const R_tot = Rsi + R_c + R_i + Rse;
+  return 1/R_tot;
 }
 function calcDT(s,Tb,Tu,Tbr) {
   const dT=Tb-Tu;
@@ -483,6 +630,17 @@ function renderSchil(s, volId, volCol) {
       </select></div>`;
   } else {
     body += `
+    <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;padding-top:4px;border-top:1px solid var(--border)">Constructie</div>
+    <div><label>Constructiemateriaal</label>
+      <select onchange="updateSchil(${volId},${s.id},'constructie',this.value)">
+        ${Object.keys(CONSTRUCTIE).map(k=>`<option value="${k}" ${s.constructie===k?'selected':''}>${k} — λ=${CONSTRUCTIE[k]} W/mK</option>`).join('')}
+      </select></div>
+    <div><label>Dikte constructie (cm)</label>
+      <input type="number" value="${s.dikte_constructie_cm||''}" step="1" min="0" max="100" placeholder="bijv. 29"
+        oninput="updateSchil(${volId},${s.id},'dikte_constructie_cm',this.value)"
+        onchange="updateSchil(${volId},${s.id},'dikte_constructie_cm',this.value)">
+    </div>
+    <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;padding-top:4px;border-top:1px solid var(--border)">Isolatie</div>
     <div><label>Isolatiemateriaal</label>
       <select onchange="updateSchil(${volId},${s.id},'isolatie',this.value)">
         ${Object.keys(ISOLATIE).map(k=>`<option value="${k}" ${s.isolatie===k?'selected':''}>${k}${ISOLATIE[k]?` — λ=${ISOLATIE[k]}`:''}</option>`).join('')}
@@ -493,7 +651,9 @@ function renderSchil(s, volId, volCol) {
         oninput="updateSchil(${volId},${s.id},'dikte_cm',this.value)"
         onchange="updateSchil(${volId},${s.id},'dikte_cm',this.value)">
     </div>`;
-    if (isVl) body += `<div><label>Vloertype</label>
+    if (isVl) body += `
+    <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;padding-top:4px;border-top:1px solid var(--border)">Vloer</div>
+    <div><label>Vloertype</label>
       <select onchange="updateSchil(${volId},${s.id},'vloertype',this.value)">
         ${Object.keys(VLOER_R).map(k=>`<option value="${k}" ${s.vloertype===k?'selected':''}>${k}</option>`).join('')}
       </select></div>`;
@@ -536,7 +696,7 @@ function updateSchil(volId,schilId,field,val) {
   s[field]=val;
   if(field==='type'){
     if(val==='schrijnwerk'){s.glastype=s.glastype||'Oud dubbel glas (voor 2000)';}
-    else{s.isolatie=s.isolatie||'Geen isolatie';s.dikte_cm=s.dikte_cm||'';}
+    else{s.isolatie=s.isolatie||'Geen isolatie';s.dikte_cm=s.dikte_cm||'';s.constructie=s.constructie||'Volle baksteen';s.dikte_constructie_cm=s.dikte_constructie_cm||'';}
     if(val==='vloer')s.vloertype=s.vloertype||'Vloer op betonplaat (volle grond)';
     renderAll(); // only re-render on type change (changes form layout)
   } else if(field==='isolatie') {
@@ -672,6 +832,15 @@ function exportExcel() {
   if(typeof XLSX === 'undefined') { alert('SheetJS nog niet geladen, probeer opnieuw.'); return; }
   const wb = XLSX.utils.book_new();
 
+  const now = new Date();
+  const jj = String(now.getFullYear()).slice(2);
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const dd = String(now.getDate()).padStart(2,'0');
+  const naam  = document.getElementById('eigenaar_naam').value.trim().replace(/[^a-zA-Z0-9À-ž ]/g,'').replace(/\s+/g,'_');
+  const adres = document.getElementById('eigenaar_adres').value.trim().replace(/[^a-zA-Z0-9À-ž ]/g,'').replace(/\s+/g,'_');
+  const parts = [jj+mm+dd, 'warmteverl', naam, adres].filter(Boolean);
+  const filename = parts.join('_') + '.xlsx';
+
   // Sheet 1: Parameters
   const params = [
     ['Parameter','Waarde'],
@@ -694,15 +863,15 @@ function exportExcel() {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(params), 'Parameters');
 
   // Sheet 2: Schillen
-  const rows = [['Volume ID','Volume naam','Intern volume (m3)','Schil ID','Type','Naam','Oppervlakte (m2)','Isolatie','Dikte (cm)','Glastype','Vloertype']];
+  const rows = [['Volume ID','Volume naam','Intern volume (m3)','Schil ID','Type','Naam','Oppervlakte (m2)','Constructie','Dikte constructie (cm)','Isolatie','Dikte isolatie (cm)','Glastype','Vloertype']];
   volumes.forEach(vol => {
     (vol.schillen||[]).forEach(s => {
-      rows.push([vol.id, vol.naam, vol.intern_volume||'', s.id, s.type, s.naam||'', s.opp||'', s.isolatie||'', s.dikte_cm||'', s.glastype||'', s.vloertype||'']);
+      rows.push([vol.id, vol.naam, vol.intern_volume||'', s.id, s.type, s.naam||'', s.opp||'', s.constructie||'', s.dikte_constructie_cm||'', s.isolatie||'', s.dikte_cm||'', s.glastype||'', s.vloertype||'']);
     });
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Schillen');
 
-  XLSX.writeFile(wb, 'warmteverliesberekening.xlsx');
+  XLSX.writeFile(wb, filename);
 }
 
 function importExcel(input) {
@@ -732,12 +901,14 @@ function importExcel(input) {
       if(ss.length > 1) {
         const volMap = {};
         ss.slice(1).forEach(r => {
-          const [volId,volNaam,volM3,schilId,type,naam,opp,isolatie,dikte,glastype,vloertype] = r;
+          const [volId,volNaam,volM3,schilId,type,naam,opp,constructie,dikte_c,isolatie,dikte,glastype,vloertype] = r;
           if(!volId) return;
           if(!volMap[volId]) volMap[volId] = {id:nextVolId++, naam:String(volNaam||''), intern_volume:String(volM3||''), open:false, schillen:[]};
           if(schilId) volMap[volId].schillen.push({
             id:nextSchilId++, type:String(type||'gevel'), naam:String(naam||''),
-            opp:String(opp||''), isolatie:String(isolatie||'Geen isolatie'),
+            opp:String(opp||''), constructie:String(constructie||'Volle baksteen'),
+            dikte_constructie_cm:String(dikte_c||''),
+            isolatie:String(isolatie||'Geen isolatie'),
             dikte_cm:String(dikte||''), glastype:String(glastype||'Oud dubbel glas (voor 2000)'),
             vloertype:String(vloertype||'Vloer op betonplaat (volle grond)'), open:false
           });
@@ -753,6 +924,221 @@ function importExcel(input) {
   };
   reader.readAsArrayBuffer(input.files[0]);
 }
+
+// ===== KOELLAST DATA =====
+// Zonnestraling W/m² op verticaal vlak, België, ontwerpdag (21 juni, helder)
+// Bron: NBN EN ISO 52010 / ASHRAE vereenvoudigd voor 51°N
+const ZON_W = {
+  'N':  80, 'NO': 210, 'O': 420, 'ZO': 480,
+  'Z': 350, 'ZW': 480, 'W': 420, 'NW': 210,
+  'H': 700  // horizontaal dak
+};
+// g-waarden beglazing (totale zontoetredingsfactor)
+const GLAS_G = {
+  'Enkel glas - oud schrijnwerk':  0.85,
+  'Oud dubbel glas (voor 2000)':   0.76,
+  'Dubbel glas 2000-2010':         0.67,
+  'Nieuw dubbel glas HR+':         0.60,
+  'Triple glas - modern schrijnwerk': 0.50,
+  'Zonwerend dubbel glas (g≤0,35)':  0.35,
+  'Zonwerend triple glas (g≤0,27)':  0.27,
+};
+// Reductiefactoren zonwering (FC)
+const ZONWERING_FC = {
+  'Geen zonwering':                    1.00,
+  '── Binnenzonwering ──':             null,
+  'Binnenjaloezie (licht)':            0.65,
+  'Binnenjaloezie (donker)':           0.55,
+  'Rolgordijn binnenin (licht)':       0.70,
+  'Rolgordijn binnenin (verduisterend)': 0.50,
+  '── Buitenzonwering ──':             null,
+  'Uitwendig screen (transparant)':    0.25,
+  'Uitwendige markies (doek)':         0.20,
+  'Uitwendige rolluik':                0.10,
+  'Overstekende luifel / brise-soleil':0.45,
+};
+
+// Koel-specifieke oriëntatie/zonwering per schrijnwerk (id → {oriëntatie, zonwering, g_override})
+let koelSchilData = {};
+
+function switchTab(tab) {
+  document.getElementById('tab-warmte').classList.toggle('active', tab==='warmte');
+  document.getElementById('tab-koel').classList.toggle('active', tab==='koel');
+  document.getElementById('tab-warmte-btn').classList.toggle('active', tab==='warmte');
+  document.getElementById('tab-koel-btn').classList.toggle('active', tab==='koel');
+  if(tab==='koel') { renderKoelSchillen(); updateKoellast(); }
+}
+
+function renderKoelSchillen() {
+  const list = document.getElementById('koel-schil-list');
+  const noMsg = document.getElementById('koel-no-schrijnwerk');
+  // Verzamel alle schrijnwerk-schillen uit alle volumes
+  const schrijnwerkSchillen = [];
+  volumes.forEach(vol => {
+    (vol.schillen||[]).forEach(s => {
+      if(s.type==='schrijnwerk' && parseFloat(s.opp)>0) {
+        schrijnwerkSchillen.push({vol, s});
+      }
+    });
+  });
+  if(schrijnwerkSchillen.length===0) { list.innerHTML=''; noMsg.style.display=''; return; }
+  noMsg.style.display='none';
+
+  list.innerHTML = schrijnwerkSchillen.map(({vol, s}) => {
+    const kd = koelSchilData[s.id] || {};
+    const ori = kd.oriëntatie || 'Z';
+    const zw  = kd.zonwering  || 'Geen zonwering';
+    const gt  = kd.glastype_koel || s.glastype;
+    return `<div style="border:1px solid var(--border);border-radius:7px;padding:10px 12px;margin-bottom:8px;background:var(--surface2)">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text)">
+        <span class="schil-type-badge badge-schrijnwerk">Schrijnwerk</span>${esc(s.naam||'Onbenoemd')}
+        <span style="color:var(--text3);font-weight:400;margin-left:6px">${parseFloat(s.opp).toFixed(2)} m²</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><label>Oriëntatie</label>
+          <select onchange="setKoelData(${s.id},'oriëntatie',this.value)">
+            ${['N','NO','O','ZO','Z','ZW','W','NW'].map(o=>`<option value="${o}" ${ori===o?'selected':''}>${o} — ${ZON_W[o]} W/m²</option>`).join('')}
+          </select></div>
+        <div><label>Zonwering</label>
+          <select onchange="setKoelData(${s.id},'zonwering',this.value)">
+            ${Object.entries(ZONWERING_FC).map(([k,v])=>
+              v===null
+                ? `<option disabled style="color:#999;font-style:italic">${k}</option>`
+                : `<option value="${k}" ${zw===k?'selected':''}>${k} (FC=${v})</option>`
+            ).join('')}
+          </select></div>
+        <div style="grid-column:1/-1"><label>Beglazing type (voor g-waarde)</label>
+          <select onchange="setKoelData(${s.id},'glastype_koel',this.value)">
+            ${Object.keys(GLAS_G).map(k=>`<option value="${k}" ${gt===k?'selected':''}>${k} — g=${GLAS_G[k]}</option>`).join('')}
+          </select></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">
+        Zonnewinst: ${ZON_W[ori]} × ${GLAS_G[gt]||0.67} × ${ZONWERING_FC[zw]??1} × ${parseFloat(s.opp).toFixed(2)} m² =
+        <strong style="color:#1a4f8a">${fmt(ZON_W[ori] * (GLAS_G[gt]||0.67) * (ZONWERING_FC[zw]??1) * parseFloat(s.opp))} W</strong>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setKoelData(schilId, field, val) {
+  if(!koelSchilData[schilId]) koelSchilData[schilId]={};
+  koelSchilData[schilId][field]=val;
+  renderKoelSchillen();
+  updateKoellast();
+}
+
+function updateKoellast() {
+  const Tb  = parseFloat(gv('koel_T_binnen'))  || 26;
+  const Tu  = parseFloat(gv('koel_T_buiten'))  || 32;
+  const nv  = parseFloat(gv('koel_vent'))       || 0.4;
+  const gf  = (parseFloat(gv('koel_gelijk'))   || 75) / 100;
+  const qInt= parseFloat(gv('koel_intern'))     || 8;
+  const Avl = parseFloat(gv('koel_vloer_opp')) || 0;
+  const dT  = Tu - Tb; // positief = warmte naar binnen
+
+  let Q_trans = 0, Q_zon = 0, Q_vent = 0, Q_intern = 0;
+  const rows = [];
+
+  // Transmissie (alle schillen behalve gemene muur en vloer op grond)
+  volumes.forEach(vol => {
+    const V = parseFloat(vol.intern_volume)||0;
+    (vol.schillen||[]).forEach(s => {
+      const opp = parseFloat(s.opp)||0;
+      if(!opp) return;
+      if(s.type==='gemene') return; // geen bijdrage zomer
+      if(s.type==='vloer')  return; // vloer koelt eerder
+      const U = calcU(s);
+      // Schrijnwerk: transmissie apart van zonnewinst
+      let dT_s = dT;
+      if(s.type==='dak') dT_s = dT + 10; // sol-air effect dak
+      const Q = U * opp * dT_s;
+      Q_trans += Q;
+      rows.push({label:(s.naam||tl(s.type)), sub:'Transmissie', opp_str:opp.toFixed(2)+' m²', factor:`U=${U.toFixed(2)}·ΔT=${dT_s.toFixed(0)}K`, Q});
+    });
+  });
+
+  // Zonnewinst schrijnwerk
+  volumes.forEach(vol => {
+    (vol.schillen||[]).forEach(s => {
+      if(s.type!=='schrijnwerk') return;
+      const opp = parseFloat(s.opp)||0;
+      if(!opp) return;
+      const kd  = koelSchilData[s.id]||{};
+      const ori = kd.oriëntatie||'Z';
+      const zw  = kd.zonwering||'Geen zonwering';
+      const gt  = kd.glastype_koel||s.glastype;
+      const Iz  = ZON_W[ori]||350;
+      const g   = GLAS_G[gt]||0.67;
+      const FC  = ZONWERING_FC[zw] ?? 1.0;
+      const Q   = Iz * g * FC * opp;
+      Q_zon += Q;
+      rows.push({label:(s.naam||'Schrijnwerk'), sub:`${ori} · ${zw}`, opp_str:opp.toFixed(2)+' m²', factor:`${Iz}W/m²·g${g}·FC${FC}`, Q});
+    });
+  });
+
+  // Ventilatie + infiltratie zomer
+  const totV = volumes.reduce((s,v)=>s+(parseFloat(v.intern_volume)||0),0);
+  if(totV>0) {
+    Q_vent = nv * 1005 * 1.3 * totV * dT / 3600;
+    rows.push({label:'Ventilatie / infiltratie', sub:`${nv} h⁻¹ · ${totV} m³`, opp_str:`${totV} m³`, factor:`ΔT=${dT}K`, Q:Q_vent});
+  }
+
+  // Interne warmtelast
+  if(Avl>0) {
+    Q_intern = qInt * Avl;
+    rows.push({label:'Interne warmtelast', sub:`Personen + verlichting + apparaten`, opp_str:`${Avl} m²`, factor:`${qInt} W/m²`, Q:Q_intern});
+  }
+
+  const Q_bruto = Q_trans + Q_zon + Q_vent + Q_intern;
+  const Q_netto = Q_bruto * gf;
+
+  // Update hoofdresultaat
+  document.getElementById('koel-total-w').textContent = fmt(Q_netto);
+  document.getElementById('koel-total-kw').textContent = fmt(Q_netto/1000,2)+' kW (na gelijktijdigheidsfactor '+fmt(gf*100,0)+'%)';
+
+  // Breakdown bars
+  const qm = Q_bruto||1;
+  document.getElementById('koel-breakdown').innerHTML = [
+    {label:'Transmissie', Q:Q_trans, color:'#b35c00'},
+    {label:'Zonnewinst schrijnwerk', Q:Q_zon, color:'#e8a020'},
+    {label:'Ventilatie', Q:Q_vent, color:'#1a4f8a'},
+    {label:'Intern (personen/apparaten)', Q:Q_intern, color:'#5a1ab5'},
+  ].map(it=>`<div class="result-row">
+    <div class="result-row-label">${it.label}</div>
+    <div class="result-row-bar"><div class="result-row-fill" style="width:${(it.Q/qm*100).toFixed(0)}%;background:${it.color}"></div></div>
+    <div class="result-row-val">${fmt(it.Q)} W</div>
+  </div>`).join('');
+
+  // Stat cells
+  document.getElementById('koel-w-m2').textContent  = Avl>0 ? fmt(Q_netto/Avl,0) : '—';
+  document.getElementById('koel-kw-advies').textContent = fmt(Math.ceil(Q_netto/500)*0.5, 1); // ronden op 0,5 kW
+  document.getElementById('koel-btu').textContent   = fmt(Q_netto*3.412,0);
+  document.getElementById('koel-kwh').textContent   = fmt(Q_netto/1000/3*8,1); // 8u piek/dag, EER 3
+
+  // Detail tabel
+  document.getElementById('koel-detail-tbody').innerHTML =
+    rows.map(r=>`<tr>
+      <td><strong>${esc(r.label)}</strong><br><span style="font-size:10px;color:var(--text3)">${esc(r.sub)}</span></td>
+      <td class="num">${r.opp_str}</td>
+      <td class="num" style="font-size:10px">${esc(r.factor)}</td>
+      <td class="num hl">${fmt(r.Q)} W</td>
+    </tr>`).join('') +
+    `<tr style="font-weight:700;border-top:2px solid var(--border2)">
+      <td colspan="3" style="color:var(--text2);font-size:11px">Bruto totaal</td>
+      <td class="num hl">${fmt(Q_bruto)} W</td>
+    </tr>
+    <tr style="font-weight:700">
+      <td colspan="3" style="color:#1a4f8a;font-size:11px">Na gelijktijdigheidsfactor (${fmt(gf*100,0)}%)</td>
+      <td class="num" style="color:#1a4f8a;font-weight:700">${fmt(Q_netto)} W</td>
+    </tr>`;
+}
+
+// Koellast listeners
+['koel_T_binnen','koel_T_buiten','koel_vent','koel_gelijk','koel_intern','koel_vloer_opp'].forEach(id=>{
+  const el=document.getElementById(id); if(!el)return;
+  el.addEventListener('input', updateKoellast);
+  el.addEventListener('change', updateKoellast);
+});
 
 volumes=[newVol()];
 renderAll();
