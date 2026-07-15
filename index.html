@@ -638,7 +638,7 @@ function renderSchil(s, volId, volCol) {
     <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;padding-top:4px;border-top:1px solid var(--border)">Constructie</div>
     <div><label>Constructiemateriaal</label>
       <select onchange="updateSchil(${volId},${s.id},'constructie',this.value)">
-        ${Object.keys(CONSTRUCTIE).map(k=>`<option value="${k}" ${s.constructie===k?'selected':''}>${k} — λ=${CONSTRUCTIE[k]} W/mK</option>`).join('')}
+        ${Object.keys(CONSTRUCTIE).map(k=>'<option value="'+k+'" '+(s.constructie===k?'selected':'')+'>'+k+' \u2014 \u03bb='+CONSTRUCTIE[k]+' W/mK</option>').join('')}
       </select></div>
     <div><label>Dikte constructie (cm)</label>
       <input type="number" value="${s.dikte_constructie_cm||''}" step="1" min="0" max="100" placeholder="bijv. 29"
@@ -648,7 +648,7 @@ function renderSchil(s, volId, volCol) {
     <div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;padding-top:4px;border-top:1px solid var(--border)">Isolatie</div>
     <div><label>Isolatiemateriaal</label>
       <select onchange="updateSchil(${volId},${s.id},'isolatie',this.value)">
-        ${Object.keys(ISOLATIE).map(k=>`<option value="${k}" ${s.isolatie===k?'selected':''}>${k}${ISOLATIE[k]?` — λ=${ISOLATIE[k]}`:''}</option>`).join('')}
+        ${Object.keys(ISOLATIE).map(k=>{const lam=ISOLATIE[k];return '<option value="'+k+'" '+(s.isolatie===k?'selected':'')+'>'+k+(lam?' \u2014 \u03bb='+lam:'')+' W/mK</option>';}).join('')}
       </select></div>
     <div><label>Dikte isolatie (cm)</label>
       <input type="number" value="${s.dikte_cm||''}" step="1" min="0" max="60" placeholder="0"
