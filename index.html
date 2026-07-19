@@ -167,30 +167,56 @@ input[readonly] { background: var(--surface2); color: var(--text2); }
 
 @media print {
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .tab-nav { display: none !important; }
-  .tab-panel { display: block !important; }
-  .tab-panel.print-hide { display: none !important; }
   body { background: white !important; font-size: 11px; }
   .page { padding: 0; max-width: 100%; }
-  .btn-pdf, .btn-add-vol, .btn-add-schil, .btn-del, .btn-del-vol, .btn-toggle-vol, .io-bar { display: none !important; }
-  .schil-item-body { display: grid !important; }
-  .vol-name-input { pointer-events: none; }
-  .card, .volume-block, .owner-card { box-shadow: none !important; }
-  /* Kolommen niet doormidden knippen — kolom verhuist naar volgende pagina */
-  .layout { grid-template-columns: 1fr 320px; gap: 14px; align-items: start; }
-  .layout > div { break-inside: avoid-page; }
-  .card { break-inside: avoid; }
-  .card[style*="break-inside:auto"] { break-inside: auto !important; }
-  .detail-table tbody tr { break-inside: avoid; }
-  .schil-card { display: none !important; }
-  .kw-header { padding: 10px 0 12px; margin-bottom: 14px; }
-  .kw-brandname { font-size: 22px; }
-  .kw-docname { font-size: 18px; }
-  .pdf-meta-bar { display: flex !important; }
-  .pdf-owner-summary { display: flex !important; }
-  .owner-card { display: none !important; }
-  input, select { border: none !important; background: transparent !important; padding: 0 !important; font-size: 11px; }
-  .hint { display: none; }
+  /* Verberg alles behalve de print-sectie */
+  .kw-header, .owner-card, .tab-nav, .tab-panel, .action-bar, .btn-pdf { display: none !important; }
+  .print-section { display: block !important; }
+  /* Print header */
+  .print-header { display: flex !important; align-items: flex-start; justify-content: space-between; padding: 0 0 10px; border-bottom: 2px solid #111; margin-bottom: 12px; }
+  .print-header-left .print-brandname { font-size: 18px; font-weight: 900; color: #111; text-transform: uppercase; }
+  .print-header-left .print-docname { font-size: 14px; font-weight: 900; color: #111; text-transform: uppercase; }
+  .print-header-left .print-disclaimer { font-size: 8px; color: #9a9890; margin-top: 3px; max-width: 400px; line-height: 1.4; }
+  .print-header-right { font-size: 10px; color: #5a5850; text-align: right; line-height: 1.8; }
+  /* Print layout: 2 kolommen, elke kaart als eigen blok */
+  .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  .print-col { display: flex; flex-direction: column; gap: 10px; }
+  .print-card { border: 1px solid #e2e0d8; border-radius: 6px; overflow: hidden; page-break-inside: avoid; break-inside: avoid; }
+  .print-card-header { background: #f9f8f5; border-bottom: 1px solid #e2e0d8; padding: 6px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #1a1917; }
+  .print-card-body { padding: 8px 10px; font-size: 10px; }
+  .print-section-title { font-size: 12px; font-weight: 700; color: #111; text-transform: uppercase; letter-spacing: 0.5px; margin: 14px 0 8px; padding-top: 10px; border-top: 1.5px solid #111; page-break-before: always; }
+  .print-section-title:first-child { page-break-before: avoid; border-top: none; margin-top: 0; }
+  /* Tabel */
+  .print-table { width: 100%; font-size: 10px; border-collapse: collapse; }
+  .print-table th { text-align: left; color: #9a9890; font-weight: 500; padding: 3px 5px; border-bottom: 1px solid #e2e0d8; }
+  .print-table td { padding: 3px 5px; border-bottom: 1px solid #e2e0d8; }
+  .print-table .num { text-align: right; }
+  .print-table .hl { font-weight: 600; color: #1b6b3a; }
+  .print-table .vol-sep td { font-weight: 700; background: #f9f8f5; font-size: 10px; padding: 5px 5px 3px; }
+  /* Resultaat blok */
+  .print-result-main { background: #1b6b3a; color: white; border-radius: 5px; padding: 10px; text-align: center; margin-bottom: 8px; }
+  .print-result-main.cooling { background: #1a4f8a; }
+  .print-result-val { font-size: 26px; font-weight: 700; line-height: 1; }
+  .print-result-unit { font-size: 11px; opacity: 0.8; }
+  .print-result-sub { font-size: 10px; opacity: 0.65; margin-top: 2px; }
+  .print-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: 6px 0; }
+  .print-stat { background: #f9f8f5; border: 1px solid #e2e0d8; border-radius: 4px; padding: 5px 7px; }
+  .print-stat-label { font-size: 9px; color: #9a9890; }
+  .print-stat-val { font-size: 13px; font-weight: 600; }
+  .print-bar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .print-bar-label { flex: 1; font-size: 9px; color: #5a5850; }
+  .print-bar-wrap { flex: 2; height: 6px; background: #e2e0d8; border-radius: 3px; overflow: hidden; }
+  .print-bar-fill { height: 100%; border-radius: 3px; }
+  .print-bar-val { font-size: 9px; font-weight: 600; min-width: 45px; text-align: right; }
+  .print-compare-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .print-compare-name { font-size: 9px; color: #5a5850; width: 130px; flex-shrink: 0; }
+  .print-compare-bar { flex: 1; height: 16px; background: #e2e0d8; border-radius: 3px; overflow: hidden; }
+  .print-compare-fill { height: 100%; border-radius: 3px; display: flex; align-items: center; padding-left: 4px; }
+  .print-compare-fill span { font-size: 9px; font-weight: 600; color: white; white-space: nowrap; }
+  .print-params-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; }
+  .print-param-row { display: flex; justify-content: space-between; font-size: 9px; padding: 2px 0; border-bottom: 1px solid #f0ede5; }
+  .print-param-label { color: #5a5850; }
+  .print-param-val { font-weight: 600; color: #1a1917; }
 }
 
 /* IO bar */
@@ -241,12 +267,19 @@ input[readonly] { background: var(--surface2); color: var(--text2); }
         <div><label>Postcode &amp; gemeente</label><input type="text" id="eigenaar_gemeente" placeholder="9000 Gent"></div>
         <div><label>Referentie / dossiernummer</label><input type="text" id="eigenaar_ref" placeholder="optioneel"></div>
       </div>
-      <div class="io-bar" style="margin-top:4px">
-        <button class="btn-io primary" onclick="exportExcel()">⬇ Opslaan als Excel</button>
-        <button class="btn-io" onclick="document.getElementById('import-input').click()">⬆ Laden vanuit Excel</button>
-      </div>
     </div>
   </div>
+
+  <!-- Actie-balk: centraal boven de tabs -->
+  <div class="action-bar" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn-io primary" onclick="exportPDF()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:none;background:#1b6b3a;color:white">⬇ Rapport als PDF</button>
+    <button class="btn-io primary" onclick="exportExcel()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:none;background:#1a4f8a;color:white">⬇ Opslaan als Excel</button>
+    <button class="btn-io" onclick="document.getElementById('import-input').click()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid #ccc9be;background:white;color:#5a5850">⬆ Laden vanuit Excel</button>
+    <input type="file" id="import-input" accept=".xlsx" style="display:none" onchange="importExcel(this)">
+  </div>
+
+  <!-- Print-sectie: verborgen op scherm, zichtbaar bij afdrukken -->
+  <div class="print-section" style="display:none"></div>
 
   <!-- Tab navigatie -->
   <div class="tab-nav">
@@ -327,11 +360,6 @@ input[readonly] { background: var(--surface2); color: var(--text2); }
           </div>
         </div>
       </div>
-      <div class="io-bar">
-        <button class="btn-io primary" onclick="exportExcel()">⬇ Opslaan als Excel</button>
-        <button class="btn-io" onclick="document.getElementById('import-input').click()">⬆ Laden vanuit Excel</button>
-        <input type="file" id="import-input" accept=".xlsx" style="display:none" onchange="importExcel(this)">
-      </div>
       <div class="card schil-card">
         <div class="card-header"><span>🧱</span><h2>Schilsamenstelling — volumes</h2></div>
         <div class="card-body" style="padding-bottom:14px">
@@ -377,10 +405,6 @@ input[readonly] { background: var(--surface2); color: var(--text2); }
       </div>
     </div><!-- einde rechterkolom -->
   </div><!-- end layout -->
-
-  <button class="btn-pdf" onclick="exportPDF()">
-    ⬇ Rapport downloaden als PDF
-  </button>
 
   </div><!-- end tab-warmte -->
 
@@ -835,16 +859,167 @@ function exportPDF() {
   const gem     = document.getElementById('eigenaar_gemeente').value.trim();
   const ref     = document.getElementById('eigenaar_ref').value.trim();
   const now     = new Date();
-  const datumStr = now.toLocaleDateString('nl-BE', {day:'2-digit',month:'long',year:'numeric'});
+  const datumStr = now.toLocaleDateString('nl-BE',{day:'2-digit',month:'long',year:'numeric'});
 
-  document.getElementById('pdf-datum').textContent = 'Datum: ' + datumStr;
-  document.getElementById('pdf-eigenaar-line').textContent = [naam, adres, gem].filter(Boolean).join(' · ');
-  document.getElementById('pdf-ref-line').textContent = ref ? 'Ref: ' + ref : '';
+  // Bereken alles eerst
+  const {Q_trans_tot,Qi_tot,Qv_tot,Q_tot,volCalc} = calcAll();
+  const T_b=parseFloat(gv('T_binnen'))||21, T_u=parseFloat(gv('T_buiten'))||(-8);
+  const gd=parseFloat(gv('klimaatzone'))||2350, dTo=T_b-T_u||29;
+  const wbh=dTo>0?Q_tot*(gd*24)/(dTo*1000):0;
+  const rend=getRend(), verb=wbh/rend;
+  const qm=Q_tot||1;
 
-  const parts = [naam, [adres,gem].filter(Boolean).join(', '), ref].filter(Boolean);
-  document.getElementById('pdf-owner-summary').innerHTML =
-    parts.map(p=>`<span>${esc(p)}</span>`).join(' &nbsp;·&nbsp; ');
+  // Systemen vergelijking data
+  const gp=parseFloat(gv('prijs_gas'))||0.103,ep=parseFloat(gv('prijs_elek'))||0.30,sc=parseFloat(gv('scop_val'))||3.5,mp=parseFloat(gv('prijs_mazout'))||0.133;
+  const sys=[
+    {naam:'Gasketel (conv.)',         r:0.78, p:gp, col:'#d4480a'},
+    {naam:'Gascondensatieketel',      r:0.92, p:gp, col:'#b35c00'},
+    {naam:'Gaskachel (schoorsteen)',  r:0.75, p:gp, col:'#e8a020'},
+    {naam:'Mazoutketel',              r:0.75, p:mp, col:'#5a5850'},
+    {naam:'Accumulatiekachel elek.',  r:1.0,  p:ep, col:'#1a4f8a'},
+    {naam:`WP SCOP ${sc.toFixed(1)}`,r:sc,   p:ep, col:'#1b6b3a'},
+  ];
+  const costs=sys.map(s=>wbh/s.r*s.p), mc=Math.max(...costs,1);
 
+  // Koellast
+  renderKoelSchillen();
+  updateKoellast();
+  const Tb2=parseFloat(gv('koel_T_binnen'))||26,Tu2=parseFloat(gv('koel_T_buiten'))||32;
+  const gf=(parseFloat(gv('koel_gelijk'))||75)/100;
+  const koelTotEl=document.getElementById('koel-total-w');
+  const Q_koel=parseFloat(koelTotEl.textContent.replace(/\./g,'').replace(',','.').replace(/\s/g,''))||0;
+
+  // Bouw print HTML
+  const eigenaarInfo = [naam,[adres,gem].filter(Boolean).join(', '),ref].filter(Boolean).join(' · ');
+
+  const transRows = (() => {
+    let rows='';
+    volCalc.forEach((vc,vi)=>{
+      const col=VCOLS[vi%VCOLS.length];
+      if(volumes.length>1) rows+=`<tr class="vol-sep"><td colspan="5" style="color:${col}">▸ ${esc(vc.vol.naam)}</td></tr>`;
+      vc.sr.forEach(r=>{
+        const o=parseFloat(r.opp)||0;
+        rows+=`<tr><td><span class="schil-type-badge ${bc(r.type)}" style="font-size:9px">${tl(r.type)}</span>${esc(r.naam||'')}</td><td class="num">${fmt(o,2)}</td><td class="num">${o>0?r.U.toFixed(3):'—'}</td><td class="num">${o>0?r.dT_s.toFixed(1):'—'}</td><td class="num hl">${o>0?fmt(r.Q):'—'}</td></tr>`;
+      });
+      rows+=`<tr style="font-weight:600;border-top:1px solid #ccc9be"><td colspan="4" style="font-size:9px;color:#5a5850">Transmissie ${esc(vc.vol.naam)}</td><td class="num hl">${fmt(vc.Q_trans)} W</td></tr>`;
+    });
+    if(volumes.length>1) rows+=`<tr style="font-weight:700;border-top:2px solid #ccc9be"><td colspan="4" style="color:#5a5850;font-size:9px">Totaal transmissie</td><td class="num hl">${fmt(Q_trans_tot)} W</td></tr>`;
+    return rows;
+  })();
+
+  // Koellast detail tabel
+  const koelDetailEl = document.getElementById('koel-detail-tbody');
+  const koelRows = koelDetailEl ? koelDetailEl.innerHTML : '';
+
+  const html = `
+    <div class="print-header">
+      <div class="print-header-left">
+        <div class="print-brandname">KLIMAATWATT? — WARMTEVERLIES &amp; KOELLAST</div>
+        <div style="font-size:11px;font-weight:600;color:#1a1917;margin-top:2px">${esc(eigenaarInfo)}</div>
+        <div class="print-disclaimer">Louter ter informatie — vervangt geen volwaardige berekening conform NBN EN 12831. KlimaatWatt is niet aansprakelijk voor fouten of beslissingen op basis van dit document.</div>
+      </div>
+      <div class="print-header-right">
+        Datum: ${datumStr}${ref?'<br>Ref: '+esc(ref):''}
+      </div>
+    </div>
+
+    <div class="print-grid">
+      <div class="print-col">
+        <!-- Parameters -->
+        <div class="print-card">
+          <div class="print-card-header">⚙️ Parameters</div>
+          <div class="print-card-body">
+            <div class="print-params-grid">
+              <div class="print-param-row"><span class="print-param-label">Binnen</span><span class="print-param-val">${gv('T_binnen')} °C</span></div>
+              <div class="print-param-row"><span class="print-param-label">Buiten ontwerp</span><span class="print-param-val">${gv('T_buiten')} °C</span></div>
+              <div class="print-param-row"><span class="print-param-label">ΔT ontwerp</span><span class="print-param-val">${dTo.toFixed(1)} K</span></div>
+              <div class="print-param-row"><span class="print-param-label">Klimaatzone</span><span class="print-param-val">${gd} °Cd</span></div>
+              <div class="print-param-row"><span class="print-param-label">Infiltratie</span><span class="print-param-val">${gv('infil_type')} h⁻¹</span></div>
+              <div class="print-param-row"><span class="print-param-label">Ventilatie</span><span class="print-param-val">${gv('vent_type')} h⁻¹</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Totaal warmteverlies -->
+        <div class="print-card">
+          <div class="print-card-header">🔴 Totaal warmteverlies</div>
+          <div class="print-card-body">
+            <div class="print-result-main">
+              <div class="print-result-val">${fmt(Q_tot)} W</div>
+              <div class="print-result-unit">${fmt(Q_tot/1000,2)} kW</div>
+            </div>
+            ${[{l:'Transmissie',Q:Q_trans_tot,c:'#1b6b3a'},{l:'Infiltratie',Q:Qi_tot,c:'#d4480a'},{l:'Ventilatie',Q:Qv_tot,c:'#1a4f8a'}].map(it=>`
+            <div class="print-bar-row">
+              <div class="print-bar-label">${it.l}</div>
+              <div class="print-bar-wrap"><div class="print-bar-fill" style="width:${(it.Q/qm*100).toFixed(0)}%;background:${it.c}"></div></div>
+              <div class="print-bar-val">${fmt(it.Q)} W</div>
+            </div>`).join('')}
+            <div class="print-stat-grid" style="margin-top:8px">
+              <div class="print-stat"><div class="print-stat-label">Warmtebehoefte</div><div class="print-stat-val">${fmt(wbh)} kWh/jr</div></div>
+              <div class="print-stat"><div class="print-stat-label">Energieverbruik</div><div class="print-stat-val">${fmt(verb)} kWh/jr</div></div>
+              <div class="print-stat"><div class="print-stat-label">Kost</div><div class="print-stat-val">€${fmt(verb*getPrice())}/jr</div></div>
+              <div class="print-stat"><div class="print-stat-label">CO₂</div><div class="print-stat-val">${fmt(verb*getCO2f())} kg/jr</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Systemen vergelijking -->
+        <div class="print-card">
+          <div class="print-card-header">⚖️ Systemen vergelijking</div>
+          <div class="print-card-body">
+            <div style="font-size:9px;color:#9a9890;margin-bottom:6px">${gd} °Cd · ${fmt(wbh)} kWh/jaar warmtebehoefte</div>
+            ${sys.map((s,i)=>`<div class="print-compare-row">
+              <div class="print-compare-name">${s.naam}</div>
+              <div class="print-compare-bar"><div class="print-compare-fill" style="width:${(costs[i]/mc*100).toFixed(0)}%;background:${s.col}"><span>€${fmt(costs[i])}/jr</span></div></div>
+            </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- Koellast -->
+        <div class="print-card">
+          <div class="print-card-header">❄️ Koellast (zomer)</div>
+          <div class="print-card-body">
+            <div class="print-result-main cooling">
+              <div class="print-result-val">${document.getElementById('koel-total-w').textContent} W</div>
+              <div class="print-result-unit">${document.getElementById('koel-total-kw').textContent}</div>
+            </div>
+            <div class="print-stat-grid" style="margin-top:6px">
+              <div class="print-stat"><div class="print-stat-label">Koellast / m²</div><div class="print-stat-val">${document.getElementById('koel-w-m2').textContent} W/m²</div></div>
+              <div class="print-stat"><div class="print-stat-label">Aanbevolen</div><div class="print-stat-val">${document.getElementById('koel-kw-advies').textContent} kW</div></div>
+              <div class="print-stat"><div class="print-stat-label">BTU/h</div><div class="print-stat-val">${document.getElementById('koel-btu').textContent}</div></div>
+              <div class="print-stat"><div class="print-stat-label">Verbruik (EER 3)</div><div class="print-stat-val">${document.getElementById('koel-kwh').textContent} kWh/dag</div></div>
+            </div>
+            <div style="font-size:9px;color:#9a9890;margin-top:6px">Ontwerp: ${Tu2}°C buiten / ${Tb2}°C binnen · gelijktijdigheid ${fmt(gf*100,0)}%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="print-col">
+        <!-- Transmissieverlies per schil -->
+        <div class="print-card">
+          <div class="print-card-header">📊 Transmissieverlies per schil</div>
+          <div class="print-card-body" style="padding:6px 8px">
+            <table class="print-table">
+              <thead><tr><th>Onderdeel</th><th class="num">Opp (m²)</th><th class="num">U</th><th class="num">ΔT</th><th class="num">Q (W)</th></tr></thead>
+              <tbody>${transRows}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Koellast detail -->
+        <div class="print-card">
+          <div class="print-card-header">📊 Koellast per component</div>
+          <div class="print-card-body" style="padding:6px 8px">
+            <table class="print-table">
+              <thead><tr><th>Component</th><th class="num">Opp/Vol</th><th class="num">Factor</th><th class="num">Q (W)</th></tr></thead>
+              <tbody>${koelRows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  document.querySelector('.print-section').innerHTML = html;
   window.print();
 }
 
